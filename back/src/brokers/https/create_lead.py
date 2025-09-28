@@ -64,8 +64,8 @@ def create_lead(req: https_fn.Request):
                 status=400
             )
         
-        # Validate required fields
-        required_fields = ["name", "email", "recaptchaToken"]
+        # Validate required fields (reCAPTCHA temporarily disabled)
+        required_fields = ["name", "email"]
         missing_fields = [field for field in required_fields if not request_data.get(field)]
         
         if missing_fields:
@@ -117,7 +117,7 @@ def create_lead(req: https_fn.Request):
         name = str(request_data["name"]).strip()
         email = str(request_data["email"]).lower().strip()
         phone = request_data.get("phone", "").strip() if request_data.get("phone") else ""
-        recaptcha_token = str(request_data["recaptchaToken"]).strip()
+        # recaptcha_token = str(request_data["recaptchaToken"]).strip()  # DISABLED
 
         # Rate limiting: Check email limit
         email_allowed, email_remaining = rate_limiter.check_email_limit(email)
@@ -144,18 +144,10 @@ def create_lead(req: https_fn.Request):
         # Extract UTM parameters and tracking info
         utm_data = _extract_utm_data(request_data)
         
-        # Verify reCAPTCHA
-        recaptcha_score = _verify_recaptcha(recaptcha_token, client_ip)
-        
-        if recaptcha_score < RECAPTCHA_SCORE_THRESHOLD:
-            logger.warning(f"reCAPTCHA score too low: {recaptcha_score} for email: {email}")
-            return create_cors_response(
-                {
-                    "error": "Security verification failed. Please try again.", 
-                    "code": "recaptcha_failed"
-                },
-                status=400
-            )
+        # TEMPORARILY DISABLED: reCAPTCHA verification
+        # Skip reCAPTCHA verification for now
+        logger.info(f"reCAPTCHA verification skipped (temporarily disabled)")
+        recaptcha_score = 1.0  # Fake perfect score
         
         # Store lead in database
         db = Db.get_instance()

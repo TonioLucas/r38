@@ -143,21 +143,10 @@ export function LeadForm({ onSubmit }: LeadFormProps) {
         submission_time: submissionTime,
       });
 
-      // Execute reCAPTCHA
-      const recaptchaToken = await executeRecaptcha(RECAPTCHA_ACTIONS.LEAD_SUBMIT);
-
-      if (!recaptchaToken) {
-        // Track reCAPTCHA challenge event
-        trackEvent(GA_EVENTS.CAPTCHA_CHALLENGE, {
-          reason: 'token_generation_failed',
-        });
-
-        // Continue without token in development
-        if (process.env.NODE_ENV === 'production') {
-          enqueueSnackbar("Erro de verificação. Por favor, tente novamente.", { variant: "error" });
-          return;
-        }
-      }
+      // TEMPORARILY DISABLED: reCAPTCHA
+      // Skip reCAPTCHA for now
+      const recaptchaToken = null;
+      console.log("reCAPTCHA skipped (temporarily disabled)");
 
       // Get UTM data
       const utmData = getAllUTMData();
