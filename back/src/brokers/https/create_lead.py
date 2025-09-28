@@ -5,7 +5,7 @@ import os
 from typing import Dict, Any
 from firebase_functions import https_fn, options
 from src.apis.Db import Db
-from src.util.cors_response import handle_cors_preflight, create_cors_response
+from src.util.cors_response import handle_cors_preflight, create_cors_response, get_allowed_origin
 from src.util.logger import get_logger
 from src.util.rate_limiter import rate_limiter
 
@@ -30,9 +30,20 @@ def create_lead(req: https_fn.Request):
         Success/error response with CORS headers
     """
     try:
-        # Handle CORS preflight - only allow POST
-        handle_cors_preflight(req, ["POST", "OPTIONS"])
-        
+        # Handle CORS preflight
+        if req.method == "OPTIONS":
+            origin = req.headers.get('Origin', '')
+            allowed_origin = get_allowed_origin(origin)
+            headers = {
+                "Access-Control-Allow-Origin": allowed_origin,
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Max-Age": "3600",
+                "Vary": "Origin",
+            }
+            return ("", 204, headers)
+
         # Only allow POST method
         if req.method != "POST":
             logger.warning(f"Invalid method attempted: {req.method}")
