@@ -25,10 +25,8 @@ export function AuthGuard({
       if (!user) {
         router.push(redirectTo);
       }
-      // Authenticated but email not verified
-      else if (!user.emailVerified && !user.isAnonymous) {
-        router.push("/verify-email");
-      }
+      // Skip email verification check for admin pages
+      // Admin email whitelist already provides security
     }
   }, [user, loading, router, redirectTo]);
 

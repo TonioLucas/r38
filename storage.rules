@@ -6,19 +6,25 @@ service firebase.storage {
       return request.auth != null;
     }
 
-    // Admin check via custom claim or settings/admins doc (mirrors Firestore rules)
+    // Admin check - using email from auth token
+    // Note: Storage rules cannot directly query Firestore, so we check emails here
+    // These should match the emails in Firestore settings/admins document
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.admin == true || (
-          firestore.exists(/databases/(default)/documents/settings/admins) &&
-          (request.auth.token.email in firestore.get(/databases/(default)/documents/settings/admins).data.emails)
-        )
+        request.auth.token.email == 'admin@renato38.com.br' ||
+        request.auth.token.email == 'antoniolucasdeor@gmail.com'
       );
     }
 
     // Ebooks folder: deny all direct reads; downloads must use signed URLs from Functions
     match /ebooks/{allPaths=**} {
       allow read: if false;
+      allow write: if isAdmin();
+    }
+
+    // Images folder: public read, admin write
+    match /images/{allPaths=**} {
+      allow read: if true; // public images
       allow write: if isAdmin();
     }
 

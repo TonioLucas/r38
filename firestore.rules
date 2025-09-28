@@ -6,13 +6,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Admins: either custom claim admin=true OR email present in settings/admins.emails array
+    // Admins: dynamically check against settings/admins document
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.admin == true || (
-          exists(/databases/$(database)/documents/settings/admins) &&
-          (request.auth.token.email in get(/databases/$(database)/documents/settings/admins).data.emails)
-        )
+        request.auth.token.email in get(/databases/$(database)/documents/settings/admins).data.emails
       );
     }
 

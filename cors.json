@@ -1,0 +1,28 @@
+[
+  {
+    "origin": [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://r38tao-5bdf1.web.app",
+      "https://r38tao-5bdf1.firebaseapp.com",
+      "https://renato38.com.br",
+      "https://www.renato38.com.br"
+    ],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "Content-Length",
+      "User-Agent",
+      "x-goog-resumable",
+      "x-goog-upload-content-length",
+      "x-goog-upload-content-type",
+      "x-firebase-storage-version",
+      "x-goog-upload-command",
+      "x-goog-upload-protocol",
+      "x-goog-upload-status",
+      "x-goog-upload-url"
+    ]
+  }
+]

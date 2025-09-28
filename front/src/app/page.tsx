@@ -11,7 +11,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import { doc, getDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { SettingsDoc, LeadDoc } from "@/types/firestore";
 import { LeadForm, LeadPayload } from "@/components/forms/LeadForm";
@@ -47,43 +47,43 @@ export default function Home() {
     try {
       // Get UTM parameters from URL
       const urlParams = new URLSearchParams(window.location.search);
-      const utmData = {
-        source: urlParams.get("utm_source") || "",
-        medium: urlParams.get("utm_medium") || "",
-        campaign: urlParams.get("utm_campaign") || "",
-        term: urlParams.get("utm_term") || "",
-        content: urlParams.get("utm_content") || "",
-        referrer: document.referrer || "",
-        gclid: urlParams.get("gclid") || "",
-        fbclid: urlParams.get("fbclid") || "",
-        timestamp: serverTimestamp(),
-      };
+      // Call the HTTP endpoint directly
+      const functionsUrl = 'https://us-central1-r38tao-5bdf1.cloudfunctions.net/create_lead';
 
-      // Create lead document
-      const leadData: Partial<LeadDoc> = {
+      // Prepare the payload for the function
+      const payload = {
         name: data.name,
         email: data.email.toLowerCase(),
-        phone: data.phone || "",
-        ip: "", // Will be set by backend
-        userAgent: navigator.userAgent,
-        utm: {
-          firstTouch: utmData as any,
-          lastTouch: utmData as any,
-        },
-        consent: {
-          lgpdConsent: data.lgpdConsent,
-          consentTextVersion: "v1.0",
-        },
-        recaptchaScore: 0, // Will be set by backend
-        download: {
-          count24h: 0,
-        },
-        createdAt: serverTimestamp() as any,
-        updatedAt: serverTimestamp() as any,
+        phone: data.phone || null,
+        recaptcha_token: data.recaptchaToken,
+        utm_source: data.utm?.lastTouch?.source || data.utm?.firstTouch?.source || null,
+        utm_medium: data.utm?.lastTouch?.medium || data.utm?.firstTouch?.medium || null,
+        utm_campaign: data.utm?.lastTouch?.campaign || data.utm?.firstTouch?.campaign || null,
+        utm_term: data.utm?.lastTouch?.term || data.utm?.firstTouch?.term || null,
+        utm_content: data.utm?.lastTouch?.content || data.utm?.firstTouch?.content || null,
+        lgpd_consent: data.lgpdConsent,
       };
 
-      // Save to Firestore (temporary - will be replaced with backend function)
-      await addDoc(collection(db, "leads"), leadData);
+      // Submit the lead through the HTTP endpoint
+      const response = await fetch(functionsUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Failed to submit lead' }));
+        throw new Error(error.message || error.error || 'Failed to submit lead');
+      }
+
+      const result = await response.json();
+
+      // Check if successful
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to submit lead');
+      }
 
       // Redirect to thank you page with email parameter
       router.push(`/obrigado?email=${encodeURIComponent(data.email.toLowerCase())}`);
@@ -211,19 +211,19 @@ export default function Home() {
               Por que Bitcoin?
             </Typography>
 
-            <Box
-              sx={{
-                width: "100%",
-                height: { xs: 300, md: 400 },
-                background: "linear-gradient(135deg, #FF8C00 0%, #FFD54F 100%)",
-                borderRadius: 2,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 10px 40px rgba(255,140,0,0.2)",
-              }}
-            >
-              {settings?.images?.[0]?.url ? (
+            {settings?.images?.[0]?.url && (
+              <Box
+                sx={{
+                  width: "100%",
+                  height: { xs: 300, md: 400 },
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 10px 40px rgba(255,140,0,0.2)",
+                  overflow: "hidden",
+                }}
+              >
                 <img
                   src={settings.images[0].url}
                   alt={settings.images[0].alt}
@@ -231,15 +231,10 @@ export default function Home() {
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
-                    borderRadius: "8px",
                   }}
                 />
-              ) : (
-                <Typography variant="h6" sx={{ color: "#FFFFFF", opacity: 0.8 }}>
-                  Imagem da Seção 1
-                </Typography>
-              )}
-            </Box>
+              </Box>
+            )}
 
             <Typography
               variant="body1"
@@ -282,19 +277,19 @@ export default function Home() {
               O que você vai aprender
             </Typography>
 
-            <Box
-              sx={{
-                width: "100%",
-                height: { xs: 300, md: 400 },
-                background: "linear-gradient(135deg, #1a1a1a 0%, #333333 100%)",
-                borderRadius: 2,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "2px solid #FF8C00",
-              }}
-            >
-              {settings?.images?.[1]?.url ? (
+            {settings?.images?.[1]?.url && (
+              <Box
+                sx={{
+                  width: "100%",
+                  height: { xs: 300, md: 400 },
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "2px solid #FF8C00",
+                  overflow: "hidden",
+                }}
+              >
                 <img
                   src={settings.images[1].url}
                   alt={settings.images[1].alt}
@@ -302,15 +297,10 @@ export default function Home() {
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
-                    borderRadius: "6px",
                   }}
                 />
-              ) : (
-                <Typography variant="h6" sx={{ color: "#FFD54F", opacity: 0.8 }}>
-                  Imagem da Seção 2
-                </Typography>
-              )}
-            </Box>
+              </Box>
+            )}
 
             <Stack spacing={3} sx={{ maxWidth: "800px", width: "100%" }}>
               <Paper
@@ -387,20 +377,21 @@ export default function Home() {
               Comece sua jornada hoje
             </Typography>
 
-            <Box
-              sx={{
-                width: "100%",
-                maxWidth: 600,
-                height: { xs: 250, md: 350 },
-                background: "rgba(255,255,255,0.2)",
-                borderRadius: 2,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                backdropFilter: "blur(10px)",
-              }}
-            >
-              {settings?.images?.[2]?.url ? (
+            {settings?.images?.[2]?.url && (
+              <Box
+                sx={{
+                  width: "100%",
+                  maxWidth: 600,
+                  height: { xs: 250, md: 350 },
+                  borderRadius: 2,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backdropFilter: "blur(10px)",
+                  overflow: "hidden",
+                  background: "rgba(255,255,255,0.2)",
+                }}
+              >
                 <img
                   src={settings.images[2].url}
                   alt={settings.images[2].alt}
@@ -408,15 +399,10 @@ export default function Home() {
                     width: "100%",
                     height: "100%",
                     objectFit: "cover",
-                    borderRadius: "8px",
                   }}
                 />
-              ) : (
-                <Typography variant="h6" sx={{ color: "#000000", opacity: 0.6 }}>
-                  Imagem da Seção 3
-                </Typography>
-              )}
-            </Box>
+              </Box>
+            )}
 
             <Typography
               variant="h5"
