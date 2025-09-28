@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 **/node_modules/
+*/node_modules/
+node_modules
 .pnp
 .pnp.js
 
@@ -93,6 +95,7 @@ pip-delete-this-directory.txt
 *.sublime-workspace
 *.sublime-project
 .cursor/
+**/.cursor/
 
 # OS Files
 .DS_Store
@@ -214,7 +217,7 @@ localhost.crt
 
 # Gatsby files
 .cache/
-public/
+# public/  # Commented out - we need front/public for Next.js static assets
 
 # Comment in the public line in if your project uses Gatsby
 # https://nextjs.org/blog/next-9-1#public-directory-support
