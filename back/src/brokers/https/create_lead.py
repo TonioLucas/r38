@@ -19,6 +19,10 @@ RECAPTCHA_SCORE_THRESHOLD = 0.5
 @https_fn.on_request(
     ingress=options.IngressSetting.ALLOW_ALL,
     timeout_sec=30,
+    cors=options.CorsOptions(
+        cors_origins=["https://renato38.com.br", "https://www.renato38.com.br", "http://localhost:3000"],
+        cors_methods=["GET", "POST", "OPTIONS"],
+    )
 )
 def create_lead(req: https_fn.Request):
     """Create lead endpoint for lead capture with reCAPTCHA verification.
@@ -30,19 +34,7 @@ def create_lead(req: https_fn.Request):
         Success/error response with CORS headers
     """
     try:
-        # Handle CORS preflight
-        if req.method == "OPTIONS":
-            origin = req.headers.get('Origin', '')
-            allowed_origin = get_allowed_origin(origin)
-            headers = {
-                "Access-Control-Allow-Origin": allowed_origin,
-                "Access-Control-Allow-Methods": "POST, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type",
-                "Access-Control-Allow-Credentials": "true",
-                "Access-Control-Max-Age": "3600",
-                "Vary": "Origin",
-            }
-            return ("", 204, headers)
+        # CORS is now handled by Firebase Functions v2 decorator
 
         # Only allow POST method
         if req.method != "POST":
