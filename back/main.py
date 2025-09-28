@@ -42,6 +42,8 @@ from src.brokers.callable.get_item import get_item_callable
 # Import HTTPS functions
 from src.brokers.https.health_check import health_check
 from src.brokers.https.webhook_handler import webhook_handler
+from src.brokers.https.create_lead import create_lead
+from src.brokers.https.get_download_link import get_download_link
 
 # Import triggered functions
 from src.brokers.triggered.on_item_created import on_item_created
@@ -58,6 +60,8 @@ __all__ = [
     # HTTPS functions
     'health_check',
     'webhook_handler',
+    'create_lead',
+    'get_download_link',
     
     # Triggered functions
     'on_item_created',

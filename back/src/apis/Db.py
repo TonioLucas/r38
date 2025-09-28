@@ -73,6 +73,9 @@ class Db(ABC):
                 "items": self.firestore.collection("items"),
                 "categories": self.firestore.collection("categories"),
                 "itemActivities": lambda item_id: self.firestore.collection(f"items/{item_id}/activities"),
+                "leads": self.firestore.collection("leads"),
+                "settings": self.firestore.collection("settings"),
+                "pages": self.firestore.collection("pages"),
                 
                 # Add more collections as needed
                 # "collection_name": self.firestore.collection("collection_name"),

@@ -2,29 +2,41 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // function to check if doc belongs to user
-    function belongsTo(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Users can read/write their own user document
-    match /users/{userId} {
-      allow read, write: if belongsTo(userId);
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Categories - users can only access their own categories
-    match /categories/{categoryId} {
-      allow read, write: if belongsTo(userId);
+    // Admins: either custom claim admin=true OR email present in settings/admins.emails array
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true || (
+          exists(/databases/$(database)/documents/settings/admins) &&
+          (request.auth.token.email in get(/databases/$(database)/documents/settings/admins).data.emails)
+        )
+      );
     }
 
-    // Items - users can only access their own items
-    match /items/{itemId} {
-      allow read, write: if belongsTo(userId);
-      
-      // Item activities subcollection
-      match /activities/{activityId} {
-        allow read, write: if belongsTo(userId);
-      }
+    // Leads: client cannot write; admin can read
+    match /leads/{leadId} {
+      allow create, update, delete: if false; // writes must go through Functions (Admin SDK)
+      allow read: if isAdmin();
+    }
+
+    // Settings: public read (site content); admin write
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Pages: only expose privacy when enabled; admin can read/write all
+    match /pages/{docId} {
+      allow read: if (docId == "privacy" && resource.data.enabled == true) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Default deny for everything else
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

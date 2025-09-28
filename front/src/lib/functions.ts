@@ -23,6 +23,13 @@ export const callableFunctions = {
     const result = await callable(data);
     return result.data;
   },
+
+  // Get download link function
+  getDownloadLink: async (data: { email: string }): Promise<any> => {
+    const callable = httpsCallable(functions, "get_download_link");
+    const result = await callable(data);
+    return result.data;
+  },
 };
 
 // Generic callable function helper

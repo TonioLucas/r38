@@ -65,8 +65,81 @@ export interface NotificationDoc extends BaseDocument {
   actionUrl?: string;
 }
 
-// Settings document
+// Lead document interface (for landing page leads)
+export interface LeadDoc extends BaseDocument {
+  name: string;
+  email: string;
+  phone?: string;
+  ip: string;
+  userAgent: string;
+  utm: {
+    firstTouch: {
+      source?: string;
+      medium?: string;
+      campaign?: string;
+      term?: string;
+      content?: string;
+      referrer?: string;
+      gclid?: string;
+      fbclid?: string;
+      timestamp: Timestamp;
+    };
+    lastTouch: {
+      source?: string;
+      medium?: string;
+      campaign?: string;
+      term?: string;
+      content?: string;
+      referrer?: string;
+      gclid?: string;
+      fbclid?: string;
+      timestamp: Timestamp;
+    };
+  };
+  consent: {
+    lgpdConsent: boolean;
+    consentTextVersion: string;
+  };
+  recaptchaScore: number;
+  download: {
+    firstDownloadedAt?: Timestamp;
+    lastDownloadedAt?: Timestamp;
+    count24h: number;
+  };
+}
+
+// Settings document (singleton for app settings)
 export interface SettingsDoc {
+  hero: {
+    headline: string;
+    subheadline: string;
+    ctaText: string;
+  };
+  images: Array<{
+    storagePath: string;
+    url: string;
+    alt: string;
+  }>;
+  ebook: {
+    storagePath: string;
+    fileName: string;
+    sizeBytes: number;
+  };
+  updatedAt: Timestamp;
+}
+
+// Page document interface (for dynamic pages like privacy policy)
+export interface PageDoc {
+  id: string;
+  title: string;
+  content: string;
+  enabled: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// User settings document
+export interface UserSettingsDoc {
   userId: string;
   theme: 'light' | 'dark';
   language: string;
@@ -90,6 +163,9 @@ export const COLLECTIONS = {
   FILES: 'files',
   NOTIFICATIONS: 'notifications',
   SETTINGS: 'settings',
+  LEADS: 'leads',
+  USER_SETTINGS: 'userSettings',
+  PAGES: 'pages',
 } as const;
 
 // Type for collection names

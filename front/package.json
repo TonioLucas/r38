@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy": "npm run build && cd .. && firebase deploy --only hosting",
+    "deploy:preview": "npm run build && cd .. && firebase hosting:channel:deploy preview"
   },
   "dependencies": {
     "@emotion/cache": "^11.11.0",
@@ -17,6 +19,7 @@
     "@mui/icons-material": "^5.16.7",
     "@mui/material": "^5.16.7",
     "@mui/material-nextjs": "^6.1.9",
+    "date-fns": "^4.1.0",
     "firebase": "^10.14.1",
     "next": "^14.2.13",
     "notistack": "^3.0.1",
