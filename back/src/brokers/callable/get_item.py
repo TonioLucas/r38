@@ -2,7 +2,7 @@
 
 from firebase_functions import https_fn, options
 from src.documents.items.Item import Item
-from src.models.function_types import GetItemRequest, GetItemResponse
+from src.models.function_types import GetItemResponse
 from src.util.db_auth_wrapper import db_auth_wrapper
 from src.util.cors_response import cors_response_on_call
 from src.util.logger import get_logger

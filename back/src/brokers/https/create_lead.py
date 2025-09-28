@@ -1,6 +1,5 @@
 """Create lead HTTP endpoint."""
 
-import json
 import requests
 import os
 from typing import Dict, Any
@@ -8,12 +7,13 @@ from firebase_functions import https_fn, options
 from src.apis.Db import Db
 from src.util.cors_response import handle_cors_preflight, create_cors_response
 from src.util.logger import get_logger
+from src.util.rate_limiter import rate_limiter
 
 logger = get_logger(__name__)
 
 # reCAPTCHA v3 configuration
 RECAPTCHA_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify"
-RECAPTCHA_SCORE_THRESHOLD = 0.3
+RECAPTCHA_SCORE_THRESHOLD = 0.5
 
 
 @https_fn.on_request(
@@ -67,12 +67,59 @@ def create_lead(req: https_fn.Request):
                 status=400
             )
         
+        # Bot detection: Check honeypot field
+        honeypot = request_data.get("website_url", "")
+        if honeypot:
+            logger.warning(f"Bot detected via honeypot field: {honeypot}")
+            # Silent success for bots
+            return create_cors_response({
+                "success": True,
+                "leadId": "bot-rejected"
+            })
+
+        # Bot detection: Check submission timing
+        submission_time = request_data.get("submission_time", 999)
+        if submission_time < 3:
+            logger.warning(f"Bot detected via submission timing: {submission_time}s")
+            # Silent success for bots
+            return create_cors_response({
+                "success": True,
+                "leadId": "bot-rejected-timing"
+            })
+
+        # Extract client info for rate limiting
+        client_ip = _get_client_ip(req)
+
+        # Rate limiting: Check IP limit
+        ip_allowed, ip_remaining = rate_limiter.check_ip_limit(client_ip)
+        if not ip_allowed:
+            logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+            retry_after = rate_limiter.get_retry_after("ip")
+            response = create_cors_response(
+                {"error": "Too many requests. Please try again later.", "code": "rate_limit_exceeded"},
+                status=429
+            )
+            response.headers["Retry-After"] = str(retry_after)
+            return response
+
         # Extract and validate data
         name = str(request_data["name"]).strip()
         email = str(request_data["email"]).lower().strip()
         phone = request_data.get("phone", "").strip() if request_data.get("phone") else ""
         recaptcha_token = str(request_data["recaptchaToken"]).strip()
-        
+
+        # Rate limiting: Check email limit
+        email_allowed, email_remaining = rate_limiter.check_email_limit(email)
+        if not email_allowed:
+            logger.warning(f"Rate limit exceeded for email: {email}")
+            retry_after = rate_limiter.get_retry_after("email")
+            response = create_cors_response(
+                {"error": "Too many submissions for this email. Please try again tomorrow.", "code": "email_rate_limit"},
+                status=429
+            )
+            response.headers["Retry-After"] = str(retry_after)
+            return response
+
         # Validate basic email format
         if "@" not in email or "." not in email:
             logger.warning(f"Invalid email format: {email}")
@@ -80,9 +127,7 @@ def create_lead(req: https_fn.Request):
                 {"error": "Invalid email format", "code": "invalid_email"},
                 status=400
             )
-        
-        # Extract client info
-        client_ip = _get_client_ip(req)
+        # Extract user agent
         user_agent = req.headers.get("User-Agent", "")
         
         # Extract UTM parameters and tracking info
@@ -153,7 +198,7 @@ def create_lead(req: https_fn.Request):
         logger.info(f"Lead processed successfully: {lead_id}")
         
         return create_cors_response({
-            "ok": True,
+            "success": True,
             "leadId": lead_id
         })
         

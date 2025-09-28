@@ -39,7 +39,7 @@ class TestCreateLeadEndpoint:
         
         assert response.status_code == 200
         data = response.json()
-        assert data["ok"] is True
+        assert data["success"] is True
         assert "leadId" in data
         
         # Verify lead was stored in database
@@ -306,3 +306,138 @@ class TestCreateLeadEndpoint:
         mock_request.headers = {"X-Forwarded-For": "10.0.0.1, 192.168.1.1"}
         ip = _get_client_ip(mock_request)
         assert ip == "10.0.0.1"
+
+    def test_honeypot_rejection(self, firebase_emulator):
+        """Test that honeypot field triggers silent rejection."""
+        url = f"http://localhost:5001/test-project/us-central1/create_lead"
+
+        with patch('src.brokers.https.create_lead._verify_recaptcha') as mock_recaptcha:
+            mock_recaptcha.return_value = 0.8
+
+            response = requests.post(
+                url,
+                json={
+                    "name": "Bot User",
+                    "email": "bot@example.com",
+                    "recaptchaToken": "mock-token",
+                    "website_url": "http://spam.com"  # Honeypot field filled
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            assert response.status_code == 200  # Silent success
+            data = response.json()
+            assert data["success"] is True
+            assert data["leadId"] == "bot-rejected"
+
+    def test_timing_rejection(self, firebase_emulator):
+        """Test that fast submission triggers silent rejection."""
+        url = f"http://localhost:5001/test-project/us-central1/create_lead"
+
+        with patch('src.brokers.https.create_lead._verify_recaptcha') as mock_recaptcha:
+            mock_recaptcha.return_value = 0.8
+
+            response = requests.post(
+                url,
+                json={
+                    "name": "Fast Bot",
+                    "email": "fastbot@example.com",
+                    "recaptchaToken": "mock-token",
+                    "submission_time": 1.5  # Less than 3 seconds
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            assert response.status_code == 200  # Silent success
+            data = response.json()
+            assert data["success"] is True
+            assert data["leadId"] == "bot-rejected-timing"
+
+    def test_rate_limit_ip(self, firebase_emulator):
+        """Test IP-based rate limiting."""
+        url = f"http://localhost:5001/test-project/us-central1/create_lead"
+
+        # Reset rate limiter for test
+        from src.util.rate_limiter import rate_limiter
+        rate_limiter.ip_limits.clear()
+
+        with patch('src.brokers.https.create_lead._verify_recaptcha') as mock_recaptcha, \
+             patch('src.brokers.https.create_lead._get_client_ip') as mock_ip:
+            mock_recaptcha.return_value = 0.8
+            mock_ip.return_value = "192.168.1.100"
+
+            # Send 10 requests (should be allowed)
+            for i in range(10):
+                response = requests.post(
+                    url,
+                    json={
+                        "name": f"User {i}",
+                        "email": f"user{i}@example.com",
+                        "recaptchaToken": "mock-token",
+                        "submission_time": 10
+                    },
+                    headers={"Content-Type": "application/json"}
+                )
+                assert response.status_code == 200, f"Request {i+1} should succeed"
+
+            # 11th request should be rate limited
+            response = requests.post(
+                url,
+                json={
+                    "name": "User 11",
+                    "email": "user11@example.com",
+                    "recaptchaToken": "mock-token",
+                    "submission_time": 10
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            assert response.status_code == 429
+            data = response.json()
+            assert "Too many requests" in data["error"]
+            assert "Retry-After" in response.headers
+
+    def test_rate_limit_email(self, firebase_emulator):
+        """Test email-based rate limiting."""
+        url = f"http://localhost:5001/test-project/us-central1/create_lead"
+
+        # Reset rate limiter for test
+        from src.util.rate_limiter import rate_limiter
+        rate_limiter.email_limits.clear()
+
+        with patch('src.brokers.https.create_lead._verify_recaptcha') as mock_recaptcha, \
+             patch('src.brokers.https.create_lead._get_client_ip') as mock_ip:
+            mock_recaptcha.return_value = 0.8
+
+            # Send 3 requests with same email (should be allowed)
+            for i in range(3):
+                mock_ip.return_value = f"192.168.1.{i}"  # Different IPs
+                response = requests.post(
+                    url,
+                    json={
+                        "name": f"Same User {i}",
+                        "email": "same@example.com",  # Same email
+                        "recaptchaToken": "mock-token",
+                        "submission_time": 10
+                    },
+                    headers={"Content-Type": "application/json"}
+                )
+                assert response.status_code == 200, f"Request {i+1} should succeed"
+
+            # 4th request with same email should be rate limited
+            mock_ip.return_value = "192.168.1.200"  # Different IP
+            response = requests.post(
+                url,
+                json={
+                    "name": "Same User 4",
+                    "email": "same@example.com",  # Same email
+                    "recaptchaToken": "mock-token",
+                    "submission_time": 10
+                },
+                headers={"Content-Type": "application/json"}
+            )
+
+            assert response.status_code == 429
+            data = response.json()
+            assert "Too many submissions for this email" in data["error"]
+            assert "Retry-After" in response.headers

@@ -1,12 +1,10 @@
 """Create item callable function."""
 
-from typing import Optional
 from firebase_functions import https_fn, options
 from src.apis.Db import Db
 from src.documents.items.Item import Item
 from src.documents.categories.Category import Category
-from src.models.function_types import CreateItemRequest, CreateItemResponse
-from src.models.firestore_types import ItemDoc
+from src.models.function_types import CreateItemResponse
 from src.util.db_auth_wrapper import db_auth_wrapper
 from src.util.cors_response import cors_response_on_call
 from src.util.logger import get_logger

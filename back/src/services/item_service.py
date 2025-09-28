@@ -1,6 +1,6 @@
 """Item service for complex item operations."""
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from src.documents.items.Item import Item
 from src.documents.categories.Category import Category
 from src.models.firestore_types import ItemDoc

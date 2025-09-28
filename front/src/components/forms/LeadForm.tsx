@@ -28,6 +28,8 @@ export interface LeadPayload {
   phone?: string;
   lgpdConsent: boolean;
   recaptchaToken?: string | null;
+  website_url?: string; // Honeypot field
+  submission_time?: number; // Time taken to submit
   utm?: {
     firstTouch: UTM;
     lastTouch: UTM;
@@ -71,6 +73,8 @@ export function LeadForm({ onSubmit }: LeadFormProps) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [formStarted, setFormStarted] = useState(false);
+  const [formStartTime] = useState(Date.now()); // Track when form was rendered
+  const [honeypot, setHoneypot] = useState(""); // Honeypot state
   const { enqueueSnackbar } = useSnackbar();
 
   // Initialize UTM tracking on mount
@@ -113,10 +117,30 @@ export function LeadForm({ onSubmit }: LeadFormProps) {
       setLoading(true);
       setSuccess(false);
 
+      // Bot detection: Check honeypot field
+      if (honeypot) {
+        // Silent failure for bots
+        setLoading(false);
+        setSuccess(true);
+        reset();
+        return;
+      }
+
+      // Bot detection: Check submission timing (reject if less than 3 seconds)
+      const submissionTime = (Date.now() - formStartTime) / 1000;
+      if (submissionTime < 3) {
+        // Silent failure for bots
+        setLoading(false);
+        setSuccess(true);
+        reset();
+        return;
+      }
+
       // Track submission attempt
       trackEvent(GA_EVENTS.LEAD_SUBMIT_ATTEMPT, {
         email_domain: data.email.split('@')[1],
         has_phone: !!data.phone,
+        submission_time: submissionTime,
       });
 
       // Execute reCAPTCHA
@@ -138,10 +162,12 @@ export function LeadForm({ onSubmit }: LeadFormProps) {
       // Get UTM data
       const utmData = getAllUTMData();
 
-      // Add reCAPTCHA token, UTM data, and user agent to payload
+      // Add reCAPTCHA token, UTM data, user agent, and bot detection fields to payload
       const payloadWithToken: LeadPayload = {
         ...data,
         recaptchaToken,
+        website_url: honeypot, // Include honeypot field
+        submission_time: submissionTime, // Include submission timing
         utm: utmData,
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
       };
@@ -300,6 +326,24 @@ export function LeadForm({ onSubmit }: LeadFormProps) {
             {errors.lgpdConsent.message}
           </Typography>
         )}
+
+        {/* Honeypot field - hidden from users */}
+        <input
+          type="text"
+          name="website_url"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          style={{
+            position: 'absolute',
+            left: '-9999px',
+            width: '1px',
+            height: '1px',
+            opacity: 0
+          }}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+        />
 
         <Button
           type="submit"

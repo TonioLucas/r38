@@ -55,7 +55,7 @@ export default function Home() {
         name: data.name,
         email: data.email.toLowerCase(),
         phone: data.phone || null,
-        recaptcha_token: data.recaptchaToken,
+        recaptchaToken: data.recaptchaToken,
         utm_source: data.utm?.lastTouch?.source || data.utm?.firstTouch?.source || null,
         utm_medium: data.utm?.lastTouch?.medium || data.utm?.firstTouch?.medium || null,
         utm_campaign: data.utm?.lastTouch?.campaign || data.utm?.firstTouch?.campaign || null,

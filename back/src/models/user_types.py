@@ -1,7 +1,6 @@
 """User-related types."""
 
 from typing import Optional, Dict, Any
-from pydantic import BaseModel
 from src.models.firestore_types import BaseDoc
 
 

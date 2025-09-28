@@ -1,6 +1,5 @@
 """Webhook handler HTTP endpoint."""
 
-import json
 import hmac
 import hashlib
 from firebase_functions import https_fn, options

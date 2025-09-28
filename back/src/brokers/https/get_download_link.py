@@ -1,6 +1,5 @@
 """Get download link HTTP endpoint with download limits."""
 
-import json
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
 from firebase_functions import https_fn, options
