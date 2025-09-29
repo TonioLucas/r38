@@ -237,7 +237,7 @@ def _generate_signed_url(db: Db, storage_path: str) -> str:
             version="v4",
             expiration=timedelta(minutes=SIGNED_URL_TTL_MINUTES),
             method="GET",
-            credentials=db._get_signed_url_credentials(),
+            # Use default application credentials in production
         )
         
         return signed_url
