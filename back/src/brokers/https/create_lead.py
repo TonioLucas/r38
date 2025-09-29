@@ -4,8 +4,9 @@ import requests
 import os
 from typing import Dict, Any
 from firebase_functions import https_fn, options
+from flask import jsonify
 from src.apis.Db import Db
-from src.util.cors_response import handle_cors_preflight, create_cors_response, get_allowed_origin
+# CORS is handled by Firebase Functions v2 decorator, no need for manual handling
 from src.util.logger import get_logger
 from src.util.rate_limiter import rate_limiter
 
@@ -20,7 +21,7 @@ RECAPTCHA_SCORE_THRESHOLD = 0.5
     ingress=options.IngressSetting.ALLOW_ALL,
     timeout_sec=30,
     cors=options.CorsOptions(
-        cors_origins=["https://renato38.com.br", "https://www.renato38.com.br", "http://localhost:3000"],
+        cors_origins="*",  # Allow all origins temporarily
         cors_methods=["GET", "POST", "OPTIONS"],
     )
 )
@@ -39,10 +40,7 @@ def create_lead(req: https_fn.Request):
         # Only allow POST method
         if req.method != "POST":
             logger.warning(f"Invalid method attempted: {req.method}")
-            return create_cors_response(
-                {"error": "Method not allowed", "code": "method_not_allowed"},
-                status=405
-            )
+            return (jsonify({"error": "Method not allowed", "code": "method_not_allowed"}), 405)
         
         # Parse JSON body
         try:
@@ -51,10 +49,7 @@ def create_lead(req: https_fn.Request):
                 raise ValueError("No JSON data provided")
         except Exception as e:
             logger.error(f"Invalid JSON in request: {e}")
-            return create_cors_response(
-                {"error": "Invalid JSON payload", "code": "invalid_json"},
-                status=400
-            )
+            return (jsonify({"error": "Invalid JSON payload", "code": "invalid_json"}), 400)
         
         # Validate required fields (reCAPTCHA temporarily disabled)
         required_fields = ["name", "email"]
@@ -62,20 +57,17 @@ def create_lead(req: https_fn.Request):
         
         if missing_fields:
             logger.warning(f"Missing required fields: {missing_fields}")
-            return create_cors_response(
-                {
-                    "error": f"Missing required fields: {', '.join(missing_fields)}", 
-                    "code": "missing_fields"
-                },
-                status=400
-            )
+            return (jsonify({
+                "error": f"Missing required fields: {', '.join(missing_fields)}",
+                "code": "missing_fields"
+            }), 400)
         
         # Bot detection: Check honeypot field
         honeypot = request_data.get("website_url", "")
         if honeypot:
             logger.warning(f"Bot detected via honeypot field: {honeypot}")
             # Silent success for bots
-            return create_cors_response({
+            return jsonify({
                 "success": True,
                 "leadId": "bot-rejected"
             })
@@ -85,7 +77,7 @@ def create_lead(req: https_fn.Request):
         if submission_time < 3:
             logger.warning(f"Bot detected via submission timing: {submission_time}s")
             # Silent success for bots
-            return create_cors_response({
+            return jsonify({
                 "success": True,
                 "leadId": "bot-rejected-timing"
             })
@@ -98,10 +90,8 @@ def create_lead(req: https_fn.Request):
         if not ip_allowed:
             logger.warning(f"Rate limit exceeded for IP: {client_ip}")
             retry_after = rate_limiter.get_retry_after("ip")
-            response = create_cors_response(
-                {"error": "Too many requests. Please try again later.", "code": "rate_limit_exceeded"},
-                status=429
-            )
+            response = jsonify({"error": "Too many requests. Please try again later.", "code": "rate_limit_exceeded"})
+            response.status_code = 429
             response.headers["Retry-After"] = str(retry_after)
             return response
 
@@ -116,20 +106,15 @@ def create_lead(req: https_fn.Request):
         if not email_allowed:
             logger.warning(f"Rate limit exceeded for email: {email}")
             retry_after = rate_limiter.get_retry_after("email")
-            response = create_cors_response(
-                {"error": "Too many submissions for this email. Please try again tomorrow.", "code": "email_rate_limit"},
-                status=429
-            )
+            response = jsonify({"error": "Too many submissions for this email. Please try again tomorrow.", "code": "email_rate_limit"})
+            response.status_code = 429
             response.headers["Retry-After"] = str(retry_after)
             return response
 
         # Validate basic email format
         if "@" not in email or "." not in email:
             logger.warning(f"Invalid email format: {email}")
-            return create_cors_response(
-                {"error": "Invalid email format", "code": "invalid_email"},
-                status=400
-            )
+            return (jsonify({"error": "Invalid email format", "code": "invalid_email"}), 400)
         # Extract user agent
         user_agent = req.headers.get("User-Agent", "")
         
@@ -192,20 +177,17 @@ def create_lead(req: https_fn.Request):
         
         logger.info(f"Lead processed successfully: {lead_id}")
         
-        return create_cors_response({
+        return jsonify({
             "success": True,
             "leadId": lead_id
         })
         
     except Exception as e:
         logger.error(f"Lead creation failed: {e}", exc_info=True)
-        return create_cors_response(
-            {
-                "error": "Internal server error",
-                "code": "internal_error"
-            },
-            status=500
-        )
+        return (jsonify({
+            "error": "Internal server error",
+            "code": "internal_error"
+        }), 500)
 
 
 def _get_client_ip(req: https_fn.Request) -> str:

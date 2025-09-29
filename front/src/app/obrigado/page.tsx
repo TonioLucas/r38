@@ -313,16 +313,16 @@ function ThankYouPageContent() {
               <Button
                 variant="outlined"
                 size="small"
-                href="https://twitter.com/renato38"
+                href="https://x.com/_r38tao"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Twitter
+                X (Twitter)
               </Button>
               <Button
                 variant="outlined"
                 size="small"
-                href="https://instagram.com/renato38"
+                href="https://www.instagram.com/r38tao/"
                 target="_blank"
                 rel="noopener noreferrer"
               >
