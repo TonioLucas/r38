@@ -26,7 +26,7 @@ interface GetDownloadLinkRequest {
 }
 
 interface GetDownloadLinkResponse {
-  ok: boolean;
+  success: boolean;  // Changed from 'ok' to 'success'
   downloadUrl?: string;
   expiresIn?: number;
   remainingDownloads?: number;
