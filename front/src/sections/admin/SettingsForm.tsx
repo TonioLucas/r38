@@ -455,6 +455,7 @@ export function SettingsForm() {
               helperText={errors.headline?.message}
               multiline
               rows={2}
+              InputLabelProps={{ shrink: true }}
             />
 
             <TextField
@@ -465,6 +466,7 @@ export function SettingsForm() {
               helperText={errors.subheadline?.message}
               multiline
               rows={3}
+              InputLabelProps={{ shrink: true }}
             />
 
             <TextField
@@ -473,6 +475,7 @@ export function SettingsForm() {
               {...register("ctaText")}
               error={!!errors.ctaText}
               helperText={errors.ctaText?.message}
+              InputLabelProps={{ shrink: true }}
             />
 
             <Button
@@ -538,6 +541,7 @@ export function SettingsForm() {
             {...register("ebookFileName")}
             error={!!errors.ebookFileName}
             helperText={errors.ebookFileName?.message}
+            InputLabelProps={{ shrink: true }}
           />
 
           <Box>
