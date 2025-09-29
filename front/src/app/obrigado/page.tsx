@@ -215,7 +215,6 @@ function ThankYouPageContent() {
               {downloadStatus === "success" && (
                 <Alert severity="info" sx={{ width: "100%" }}>
                   Link de download gerado com sucesso! O download deve começar automaticamente.
-                  Downloads restantes hoje: {remainingDownloads}
                 </Alert>
               )}
             </>
