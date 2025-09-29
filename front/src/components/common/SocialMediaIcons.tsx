@@ -19,9 +19,9 @@ export function SocialMediaIcons({
 }: SocialMediaIconsProps) {
   return (
     <Stack direction="row" spacing={spacing} justifyContent="center" alignItems="center">
-      <Tooltip title="Siga-nos no Instagram">
+      <Tooltip title="Siga no Instagram">
         <IconButton
-          aria-label="Siga-nos no Instagram (abre em nova aba)"
+          aria-label="Siga no Instagram (abre em nova aba)"
           size={size}
           color={color}
           href={instagramUrl}
@@ -40,23 +40,20 @@ export function SocialMediaIcons({
         </IconButton>
       </Tooltip>
 
-      <Tooltip title="Siga-nos no X">
+      <Tooltip title="Siga no X">
         <IconButton
-          aria-label="Siga-nos no X (abre em nova aba)"
+          aria-label="Siga no X (abre em nova aba)"
           size={size}
           color={color}
           href={xUrl}
           target="_blank"
           rel="noopener noreferrer"
           sx={{
-            color: (theme) => theme.palette.mode === 'dark' ? '#FFFFFF' : '#000000',
+            color: "#FFFFFF",
             transition: "transform 0.2s",
             "&:hover": {
               transform: "scale(1.1)",
-              backgroundColor: (theme) =>
-                theme.palette.mode === 'dark'
-                  ? "rgba(255, 255, 255, 0.08)"
-                  : "rgba(0, 0, 0, 0.04)",
+              backgroundColor: "rgba(255, 255, 255, 0.08)",
             },
           }}
         >

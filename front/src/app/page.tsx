@@ -464,7 +464,7 @@ export default function Home() {
         <Container maxWidth="lg">
           <Stack spacing={3} alignItems="center">
             <Typography variant="h6" sx={{ color: "#FF8C00" }}>
-              Siga-nos nas redes sociais
+              Siga o Renato nas redes sociais
             </Typography>
             <SocialMediaIcons
               instagramUrl="https://www.instagram.com/r38tao/"
