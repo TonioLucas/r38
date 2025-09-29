@@ -3,8 +3,8 @@
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
 from firebase_functions import https_fn, options
+from flask import jsonify
 from src.apis.Db import Db
-from src.util.cors_response import handle_cors_preflight, create_cors_response
 from src.util.logger import get_logger
 
 logger = get_logger(__name__)
@@ -17,6 +17,10 @@ SIGNED_URL_TTL_MINUTES = 10  # 10 minutes as per PRD recommendation
 @https_fn.on_request(
     ingress=options.IngressSetting.ALLOW_ALL,
     timeout_sec=30,
+    cors=options.CorsOptions(
+        cors_origins="*",  # Allow all origins temporarily
+        cors_methods=["GET", "POST", "OPTIONS"],
+    )
 )
 def get_download_link(req: https_fn.Request):
     """Generate signed download link with rate limiting.
@@ -28,16 +32,12 @@ def get_download_link(req: https_fn.Request):
         Signed URL or error response with CORS headers
     """
     try:
-        # Handle CORS preflight - only allow POST
-        handle_cors_preflight(req, ["POST", "OPTIONS"])
-        
+        # CORS is now handled by Firebase Functions v2 decorator
+
         # Only allow POST method
         if req.method != "POST":
             logger.warning(f"Invalid method attempted: {req.method}")
-            return create_cors_response(
-                {"error": "Method not allowed", "code": "method_not_allowed"},
-                status=405
-            )
+            return (jsonify({"error": "Method not allowed", "code": "method_not_allowed"}), 405)
         
         # Parse JSON body
         try:
@@ -46,19 +46,13 @@ def get_download_link(req: https_fn.Request):
                 raise ValueError("No JSON data provided")
         except Exception as e:
             logger.error(f"Invalid JSON in request: {e}")
-            return create_cors_response(
-                {"error": "Invalid JSON payload", "code": "invalid_json"},
-                status=400
-            )
+            return (jsonify({"error": "Invalid JSON payload", "code": "invalid_json"}), 400)
         
         # Validate required fields
         email = request_data.get("email")
         if not email:
             logger.warning("Missing email in download request")
-            return create_cors_response(
-                {"error": "Email is required", "code": "missing_email"},
-                status=400
-            )
+            return (jsonify({"error": "Email is required", "code": "missing_email"}), 400)
         
         email = str(email).lower().strip()
         
@@ -69,10 +63,7 @@ def get_download_link(req: https_fn.Request):
         lead = _get_lead_by_email(db, email)
         if not lead:
             logger.warning(f"Lead not found for email: {email}")
-            return create_cors_response(
-                {"error": "Lead not found", "code": "lead_not_found"},
-                status=404
-            )
+            return (jsonify({"error": "Lead not found", "code": "lead_not_found"}), 404)
         
         lead_id, lead_data = lead
         
@@ -80,37 +71,28 @@ def get_download_link(req: https_fn.Request):
         can_download, limit_message = _check_download_limits(lead_data)
         if not can_download:
             logger.info(f"Download limit exceeded for email: {email}")
-            return create_cors_response(
-                {"error": limit_message, "code": "download_limit_exceeded"},
-                status=429
-            )
+            return (jsonify({"error": limit_message, "code": "download_limit_exceeded"}), 429)
         
         # Get e-book storage path from settings
         ebook_path = _get_ebook_storage_path(db)
         if not ebook_path:
             logger.error("E-book storage path not configured")
-            return create_cors_response(
-                {"error": "Download temporarily unavailable", "code": "storage_not_configured"},
-                status=500
-            )
+            return (jsonify({"error": "Download temporarily unavailable", "code": "storage_not_configured"}), 500)
         
         # Generate signed URL
         try:
             signed_url = _generate_signed_url(db, ebook_path)
         except Exception as e:
             logger.error(f"Failed to generate signed URL: {e}")
-            return create_cors_response(
-                {"error": "Failed to generate download link", "code": "url_generation_failed"},
-                status=500
-            )
+            return (jsonify({"error": "Failed to generate download link", "code": "url_generation_failed"}), 500)
         
         # Update download counters
         _update_download_counters(db, lead_id, lead_data)
         
         logger.info(f"Generated download link for email: {email}")
         
-        return create_cors_response({
-            "ok": True,
+        return jsonify({
+            "success": True,  # Changed from "ok" to "success" for consistency
             "downloadUrl": signed_url,
             "expiresIn": SIGNED_URL_TTL_MINUTES * 60,  # seconds
             "remainingDownloads": MAX_DOWNLOADS_PER_24H - (lead_data.get("download", {}).get("count24h", 0) + 1)
@@ -118,13 +100,10 @@ def get_download_link(req: https_fn.Request):
         
     except Exception as e:
         logger.error(f"Download link generation failed: {e}", exc_info=True)
-        return create_cors_response(
-            {
-                "error": "Internal server error",
-                "code": "internal_error"
-            },
-            status=500
-        )
+        return (jsonify({
+            "error": "Internal server error",
+            "code": "internal_error"
+        }), 500)
 
 
 def _get_lead_by_email(db: Db, email: str) -> Optional[tuple]:
