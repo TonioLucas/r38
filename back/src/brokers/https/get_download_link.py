@@ -185,7 +185,7 @@ def _get_ebook_storage_path(db: Db) -> Optional[str]:
         Storage path string or None if not configured
     """
     try:
-        settings_doc = db.collections["settings"].document("config").get()
+        settings_doc = db.collections["settings"].document("main").get()
         
         if not settings_doc.exists:
             logger.warning("Settings document not found")

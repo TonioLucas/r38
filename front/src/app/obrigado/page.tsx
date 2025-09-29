@@ -96,7 +96,7 @@ function ThankYouPageContent() {
         { email }
       );
 
-      if (response.ok && response.downloadUrl) {
+      if (response.success && response.downloadUrl) {
         // Success - got download URL
         setDownloadUrl(response.downloadUrl);
         setRemainingDownloads(response.remainingDownloads || 0);
