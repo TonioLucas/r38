@@ -20,6 +20,7 @@ import { trackEvent, GA_EVENTS } from "@/lib/analytics";
 import { executeRecaptcha, RECAPTCHA_ACTIONS } from "@/lib/recaptcha";
 import { callFunction } from "@/lib/functions";
 import Link from "next/link";
+import { SocialMediaIcons } from "@/components/common/SocialMediaIcons";
 
 interface GetDownloadLinkRequest {
   email: string;
@@ -295,11 +296,6 @@ function ThankYouPageContent() {
                 {downloadStatus === "idle" && "Baixar E-book Agora"}
               </Button>
 
-              {downloadStatus !== "rate_limit" && (
-                <Typography variant="caption" color="text.secondary">
-                  Limite de 3 downloads por e-mail a cada 24 horas
-                </Typography>
-              )}
             </Box>
 
           {/* Social Media Section */}
@@ -308,26 +304,12 @@ function ThankYouPageContent() {
               Enquanto isso, que tal seguir Renato nas redes sociais?
             </Typography>
 
-            <Stack direction="row" spacing={2} justifyContent="center" sx={{ pt: 2 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                href="https://x.com/_r38tao"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                X (Twitter)
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                href="https://www.instagram.com/r38tao/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Instagram
-              </Button>
-            </Stack>
+            <Box sx={{ pt: 2 }}>
+              <SocialMediaIcons
+                instagramUrl="https://www.instagram.com/r38tao/"
+                xUrl="https://x.com/_r38tao"
+              />
+            </Box>
           </Box>
 
           {/* Back to Home */}

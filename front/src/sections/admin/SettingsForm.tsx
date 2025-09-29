@@ -107,12 +107,12 @@ export function SettingsForm() {
       if (settingsSnap.exists()) {
         const data = settingsSnap.data() as SettingsDoc;
 
-        // Use actual data from Firestore
+        // Use actual data from Firestore with fallbacks to landing page defaults
         reset({
-          headline: data.hero?.headline || "",
-          subheadline: data.hero?.subheadline || "",
-          ctaText: data.hero?.ctaText || "",
-          ebookFileName: data.ebook?.fileName || "",
+          headline: data.hero?.headline || "Soberania começa com conhecimento.",
+          subheadline: data.hero?.subheadline || "Baixe grátis o e-book 'Bitcoin Red Pill (3ª Edição)' e entenda, sem rodeios, os fundamentos do Bitcoin e da autocustódia.",
+          ctaText: data.hero?.ctaText || "Baixar e-book grátis",
+          ebookFileName: data.ebook?.fileName || "Bitcoin Red Pill (3ª Edição)",
         });
 
         // Load images into separate slots
@@ -126,8 +126,14 @@ export function SettingsForm() {
           setCurrentEbookName(data.ebook.fileName || "");
         }
       } else {
-        // No settings exist - leave form empty for user to fill
-        enqueueSnackbar("Nenhuma configuração encontrada. Configure os valores iniciais.", { variant: "info" });
+        // No settings exist - populate with default values
+        reset({
+          headline: "Soberania começa com conhecimento.",
+          subheadline: "Baixe grátis o e-book 'Bitcoin Red Pill (3ª Edição)' e entenda, sem rodeios, os fundamentos do Bitcoin e da autocustódia.",
+          ctaText: "Baixar e-book grátis",
+          ebookFileName: "Bitcoin Red Pill (3ª Edição)",
+        });
+        enqueueSnackbar("Nenhuma configuração encontrada. Valores padrão foram carregados.", { variant: "info" });
       }
     } catch (error) {
       console.error("Error loading settings:", error);

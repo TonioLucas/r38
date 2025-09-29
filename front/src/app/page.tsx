@@ -16,6 +16,7 @@ import { db } from "@/lib/firebase";
 import { SettingsDoc, LeadDoc } from "@/types/firestore";
 import { LeadForm, LeadPayload } from "@/components/forms/LeadForm";
 import { useRouter } from "next/navigation";
+import { SocialMediaIcons } from "@/components/common/SocialMediaIcons";
 
 export default function Home() {
   const theme = useTheme();
@@ -448,6 +449,31 @@ export default function Home() {
           <Paper elevation={3} sx={{ p: 4 }}>
             <LeadForm onSubmit={handleLeadSubmit} />
           </Paper>
+        </Container>
+      </Box>
+
+      {/* Footer with Social Media Icons */}
+      <Box
+        component="footer"
+        sx={{
+          py: 4,
+          backgroundColor: "#000000",
+          color: "#FFFFFF",
+        }}
+      >
+        <Container maxWidth="lg">
+          <Stack spacing={3} alignItems="center">
+            <Typography variant="h6" sx={{ color: "#FF8C00" }}>
+              Siga-nos nas redes sociais
+            </Typography>
+            <SocialMediaIcons
+              instagramUrl="https://www.instagram.com/r38tao/"
+              xUrl="https://x.com/_r38tao"
+            />
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.6)" }}>
+              © {new Date().getFullYear()} R38. Todos os direitos reservados.
+            </Typography>
+          </Stack>
         </Container>
       </Box>
     </>

@@ -36,10 +36,11 @@ def get_download_link(req: https_fn.CallableRequest) -> Dict[str, Any]:
         email = request_data.get("email")
         if not email:
             logger.warning("Missing email in download request")
-            raise https_fn.HttpsError(
-                code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
-                message="Email is required"
-            )
+            return {
+                "success": False,
+                "error": "Email is required",
+                "code": "invalid_argument"
+            }
         
         email = str(email).lower().strip()
         
@@ -50,10 +51,11 @@ def get_download_link(req: https_fn.CallableRequest) -> Dict[str, Any]:
         lead = _get_lead_by_email(db, email)
         if not lead:
             logger.warning(f"Lead not found for email: {email}")
-            raise https_fn.HttpsError(
-                code=https_fn.FunctionsErrorCode.NOT_FOUND,
-                message="Lead not found"
-            )
+            return {
+                "success": False,
+                "error": "Lead not found. Please register first.",
+                "code": "lead_not_found"
+            }
         
         lead_id, lead_data = lead
         
@@ -61,29 +63,33 @@ def get_download_link(req: https_fn.CallableRequest) -> Dict[str, Any]:
         can_download, limit_message = _check_download_limits(lead_data)
         if not can_download:
             logger.info(f"Download limit exceeded for email: {email}")
-            raise https_fn.HttpsError(
-                code=https_fn.FunctionsErrorCode.RESOURCE_EXHAUSTED,
-                message=limit_message
-            )
+            # Return error response instead of raising exception
+            return {
+                "success": False,
+                "error": limit_message,
+                "code": "download_limit_exceeded"
+            }
         
         # Get e-book storage path from settings
         ebook_path = _get_ebook_storage_path(db)
         if not ebook_path:
             logger.error("E-book storage path not configured")
-            raise https_fn.HttpsError(
-                code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION,
-                message="Download temporarily unavailable - E-book not configured"
-            )
+            return {
+                "success": False,
+                "error": "Download temporarily unavailable. Please try again later.",
+                "code": "ebook_not_configured"
+            }
         
         # Generate signed URL
         try:
             signed_url = _generate_signed_url(db, ebook_path)
         except Exception as e:
             logger.error(f"Failed to generate signed URL: {e}")
-            raise https_fn.HttpsError(
-                code=https_fn.FunctionsErrorCode.INTERNAL,
-                message="Failed to generate download link"
-            )
+            return {
+                "success": False,
+                "error": "Failed to generate download link. Please try again.",
+                "code": "url_generation_failed"
+            }
         
         # Update download counters
         _update_download_counters(db, lead_id, lead_data)
@@ -99,10 +105,11 @@ def get_download_link(req: https_fn.CallableRequest) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"Download link generation failed: {e}", exc_info=True)
-        raise https_fn.HttpsError(
-            code=https_fn.FunctionsErrorCode.INTERNAL,
-            message="Internal server error"
-        )
+        return {
+            "success": False,
+            "error": "An error occurred. Please try again later.",
+            "code": "internal_error"
+        }
 
 
 def _get_lead_by_email(db: Db, email: str) -> Optional[tuple]:
