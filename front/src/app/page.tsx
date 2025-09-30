@@ -17,6 +17,7 @@ import { SettingsDoc, LeadDoc } from "@/types/firestore";
 import { LeadForm, LeadPayload } from "@/components/forms/LeadForm";
 import { useRouter } from "next/navigation";
 import { SocialMediaIcons } from "@/components/common/SocialMediaIcons";
+import Image from "next/image";
 
 export default function Home() {
   const theme = useTheme();
@@ -133,60 +134,107 @@ export default function Home() {
         />
 
         <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
-          <Stack spacing={4} alignItems="center" textAlign="center">
-            <Typography
-              variant="h1"
-              component="h1"
-              sx={{
-                fontSize: { xs: "2.5rem", md: "3.5rem", lg: "4rem" },
-                fontWeight: 900,
-                lineHeight: 1.1,
-                mb: 2,
-                background: "linear-gradient(45deg, #FF8C00 30%, #FFD54F 90%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                textShadow: "0 0 30px rgba(255,140,0,0.3)",
-              }}
-            >
-              {headline}
-            </Typography>
+          {settings?.images?.[0]?.url ? (
+            // WITH hero image - show image, hide text, keep CTA
+            <Stack spacing={4} alignItems="center">
+              <Box
+                sx={{
+                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: '3/4',
+                  maxWidth: { xs: 300, sm: 400, md: 500 },
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  boxShadow: "0 10px 40px rgba(255,140,0,0.3)",
+                }}
+              >
+                <Image
+                  src={settings.images[0].url}
+                  alt={settings.images[0].alt}
+                  fill
+                  priority
+                  sizes="(max-width: 600px) 100vw, (max-width: 1200px) 80vw, 500px"
+                  style={{ objectFit: "cover" }}
+                />
+              </Box>
+              <Button
+                variant="contained"
+                color="primary"
+                size="large"
+                sx={{
+                  fontSize: "1.125rem",
+                  py: 1.5,
+                  px: 4,
+                  fontWeight: 700,
+                  boxShadow: "0 4px 20px rgba(255,140,0,0.4)",
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 6px 30px rgba(255,140,0,0.6)",
+                  },
+                  transition: "all 0.3s ease",
+                }}
+                href="#lead-form"
+              >
+                {ctaText}
+              </Button>
+            </Stack>
+          ) : (
+            // WITHOUT hero image - show original text layout
+            <Stack spacing={4} alignItems="center" textAlign="center">
+              <Typography
+                variant="h1"
+                component="h1"
+                sx={{
+                  fontSize: { xs: "2.5rem", md: "3.5rem", lg: "4rem" },
+                  fontWeight: 900,
+                  lineHeight: 1.1,
+                  mb: 2,
+                  background: "linear-gradient(45deg, #FF8C00 30%, #FFD54F 90%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  textShadow: "0 0 30px rgba(255,140,0,0.3)",
+                }}
+              >
+                {headline}
+              </Typography>
 
-            <Typography
-              variant="h5"
-              component="h2"
-              sx={{
-                fontSize: { xs: "1.1rem", md: "1.25rem" },
-                fontWeight: 400,
-                lineHeight: 1.6,
-                maxWidth: "800px",
-                color: "rgba(255, 255, 255, 0.9)",
-                mb: 3,
-              }}
-            >
-              {subheadline}
-            </Typography>
+              <Typography
+                variant="h5"
+                component="h2"
+                sx={{
+                  fontSize: { xs: "1.1rem", md: "1.25rem" },
+                  fontWeight: 400,
+                  lineHeight: 1.6,
+                  maxWidth: "800px",
+                  color: "rgba(255, 255, 255, 0.9)",
+                  mb: 3,
+                }}
+              >
+                {subheadline}
+              </Typography>
 
-            <Button
-              variant="contained"
-              color="primary"
-              size="large"
-              sx={{
-                fontSize: "1.125rem",
-                py: 1.5,
-                px: 4,
-                fontWeight: 700,
-                boxShadow: "0 4px 20px rgba(255,140,0,0.4)",
-                "&:hover": {
-                  transform: "translateY(-2px)",
-                  boxShadow: "0 6px 30px rgba(255,140,0,0.6)",
-                },
-                transition: "all 0.3s ease",
-              }}
-              href="#lead-form"
-            >
-              {ctaText}
-            </Button>
-          </Stack>
+              <Button
+                variant="contained"
+                color="primary"
+                size="large"
+                sx={{
+                  fontSize: "1.125rem",
+                  py: 1.5,
+                  px: 4,
+                  fontWeight: 700,
+                  boxShadow: "0 4px 20px rgba(255,140,0,0.4)",
+                  "&:hover": {
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 6px 30px rgba(255,140,0,0.6)",
+                  },
+                  transition: "all 0.3s ease",
+                }}
+                href="#lead-form"
+              >
+                {ctaText}
+              </Button>
+            </Stack>
+          )}
         </Container>
       </Box>
 
@@ -212,27 +260,24 @@ export default function Home() {
               Por que Bitcoin?
             </Typography>
 
-            {settings?.images?.[0]?.url && (
+            {settings?.images?.[1]?.url && (
               <Box
                 sx={{
+                  position: 'relative',
                   width: "100%",
-                  height: { xs: 300, md: 400 },
+                  aspectRatio: '16/9',
+                  maxWidth: { xs: "100%", md: 1200 },
                   borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 10px 40px rgba(255,140,0,0.2)",
                   overflow: "hidden",
+                  boxShadow: "0 10px 40px rgba(255,140,0,0.2)",
                 }}
               >
-                <img
-                  src={settings.images[0].url}
-                  alt={settings.images[0].alt}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
+                <Image
+                  src={settings.images[1].url}
+                  alt={settings.images[1].alt}
+                  fill
+                  sizes="(max-width: 600px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                  style={{ objectFit: "contain" }}
                 />
               </Box>
             )}
@@ -278,27 +323,24 @@ export default function Home() {
               O que você vai aprender
             </Typography>
 
-            {settings?.images?.[1]?.url && (
+            {settings?.images?.[2]?.url && (
               <Box
                 sx={{
+                  position: 'relative',
                   width: "100%",
-                  height: { xs: 300, md: 400 },
+                  aspectRatio: '16/9',
+                  maxWidth: { xs: "100%", md: 1200 },
                   borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                   border: "2px solid #FF8C00",
                   overflow: "hidden",
                 }}
               >
-                <img
-                  src={settings.images[1].url}
-                  alt={settings.images[1].alt}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
+                <Image
+                  src={settings.images[2].url}
+                  alt={settings.images[2].alt}
+                  fill
+                  sizes="(max-width: 600px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                  style={{ objectFit: "contain" }}
                 />
               </Box>
             )}
@@ -378,29 +420,25 @@ export default function Home() {
               Comece sua jornada hoje
             </Typography>
 
-            {settings?.images?.[2]?.url && (
+            {settings?.images?.[3]?.url && (
               <Box
                 sx={{
+                  position: 'relative',
                   width: "100%",
                   maxWidth: 600,
-                  height: { xs: 250, md: 350 },
+                  aspectRatio: '1/1',
                   borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                   backdropFilter: "blur(10px)",
                   overflow: "hidden",
                   background: "rgba(255,255,255,0.2)",
                 }}
               >
-                <img
-                  src={settings.images[2].url}
-                  alt={settings.images[2].alt}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
+                <Image
+                  src={settings.images[3].url}
+                  alt={settings.images[3].alt}
+                  fill
+                  sizes="(max-width: 600px) 100vw, 600px"
+                  style={{ objectFit: "cover" }}
                 />
               </Box>
             )}

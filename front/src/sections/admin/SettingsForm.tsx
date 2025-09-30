@@ -66,10 +66,11 @@ export function SettingsForm() {
   const [savingImages, setSavingImages] = useState(false);
   const [savingPdf, setSavingPdf] = useState(false);
 
-  // Three separate image slots
+  // Four separate image slots
   const [image1, setImage1] = useState<ImageSlot | null>(null);
   const [image2, setImage2] = useState<ImageSlot | null>(null);
   const [image3, setImage3] = useState<ImageSlot | null>(null);
+  const [image4, setImage4] = useState<ImageSlot | null>(null);
 
   const [ebookFile, setEbookFile] = useState<File | null>(null);
   const [currentEbookPath, setCurrentEbookPath] = useState<string>("");
@@ -120,6 +121,7 @@ export function SettingsForm() {
         if (images[0]) setImage1(images[0]);
         if (images[1]) setImage2(images[1]);
         if (images[2]) setImage3(images[2]);
+        if (images[3]) setImage4(images[3]);
 
         if (data.ebook) {
           setCurrentEbookPath(data.ebook.storagePath || "");
@@ -179,7 +181,7 @@ export function SettingsForm() {
 
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
-    slot: 1 | 2 | 3
+    slot: 1 | 2 | 3 | 4
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -214,6 +216,7 @@ export function SettingsForm() {
       if (slot === 1) setImage1(newImage);
       else if (slot === 2) setImage2(newImage);
       else if (slot === 3) setImage3(newImage);
+      else if (slot === 4) setImage4(newImage);
 
       enqueueSnackbar(`Imagem ${slot} carregada com sucesso`, { variant: "success" });
     } catch (error) {
@@ -227,12 +230,12 @@ export function SettingsForm() {
     event.target.value = '';
   };
 
-  const handleImageDelete = async (slot: 1 | 2 | 3) => {
+  const handleImageDelete = async (slot: 1 | 2 | 3 | 4) => {
     try {
       setLoading(true);
 
       // Get the image to delete
-      const imageToDelete = slot === 1 ? image1 : slot === 2 ? image2 : image3;
+      const imageToDelete = slot === 1 ? image1 : slot === 2 ? image2 : slot === 3 ? image3 : image4;
 
       if (imageToDelete?.storagePath) {
         // Delete from storage
@@ -248,6 +251,7 @@ export function SettingsForm() {
       if (slot === 1) setImage1(null);
       else if (slot === 2) setImage2(null);
       else if (slot === 3) setImage3(null);
+      else if (slot === 4) setImage4(null);
 
       enqueueSnackbar(`Imagem ${slot} removida`, { variant: "success" });
     } catch (error) {
@@ -287,6 +291,7 @@ export function SettingsForm() {
       if (image1) images.push(image1);
       if (image2) images.push(image2);
       if (image3) images.push(image3);
+      if (image4) images.push(image4);
 
       const settingsRef = doc(db, "settings", "main");
       await setDoc(settingsRef, {
@@ -371,7 +376,7 @@ export function SettingsForm() {
   };
 
   const renderImageSlot = (
-    slot: 1 | 2 | 3,
+    slot: 1 | 2 | 3 | 4,
     image: ImageSlot | null,
     title: string
   ) => (
@@ -496,25 +501,28 @@ export function SettingsForm() {
           Imagens do Hero
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Faça upload de até 3 imagens. Apenas imagens carregadas aparecerão no site.
+          Faça upload de até 4 imagens. Apenas imagens carregadas aparecerão no site.
         </Typography>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={4}>
-            {renderImageSlot(1, image1, "Imagem 1")}
+          <Grid item xs={12} md={3}>
+            {renderImageSlot(1, image1, "Imagem 1 (Hero)")}
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             {renderImageSlot(2, image2, "Imagem 2")}
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3}>
             {renderImageSlot(3, image3, "Imagem 3")}
+          </Grid>
+          <Grid item xs={12} md={3}>
+            {renderImageSlot(4, image4, "Imagem 4")}
           </Grid>
         </Grid>
 
         <Button
           variant="contained"
           onClick={saveImages}
-          disabled={savingImages || (!image1 && !image2 && !image3)}
+          disabled={savingImages || (!image1 && !image2 && !image3 && !image4)}
           startIcon={savingImages ? <CircularProgress size={20} /> : <SaveIcon />}
           fullWidth
         >
