@@ -144,20 +144,17 @@ function ThankYouPageContent() {
             </Typography>
 
             <Typography variant="h6" color="common.white">
-              Enviamos o e-book para <strong>{email || 'seu e-mail'}</strong>
+              Enviamos o e-book "Bitcoin Red Pill (3ª Edição)" para <strong>{email || 'seu e-mail'}</strong>
             </Typography>
 
-            <Alert severity="success" sx={{ width: "100%" }}>
-              Você receberá o e-book "Bitcoin Red Pill (3ª Edição)" em seu e-mail em breve.
+            <Alert severity="warning" sx={{ width: "100%", mt: 2 }}>
+              <Typography variant="body1" fontWeight={600}>
+                ⚠️ IMPORTANTE: Verifique sua pasta de SPAM/LIXO ELETRÔNICO!
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                O e-mail pode ter sido direcionado para lá. Se encontrar, marque como "não é spam" para receber futuras comunicações.
+              </Typography>
             </Alert>
-
-            <Typography variant="body1" color="common.white">
-              Verifique sua caixa de entrada e também a pasta de spam.
-            </Typography>
-
-            <Typography variant="body2" color="common.white">
-              Não recebeu? Entre em contato conosco.
-            </Typography>
 
             {/* Social Media Section */}
             <Box sx={{ pt: 3, borderTop: 1, borderColor: "rgba(255, 255, 255, 0.2)", width: "100%" }}>
