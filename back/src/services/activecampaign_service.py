@@ -27,11 +27,22 @@ class ActiveCampaignService:
         account = os.environ.get("ACTIVECAMPAIGN_ACCOUNT")
         self.api_key = os.environ.get("ACTIVECAMPAIGN_API_KEY")
         self.ebook_tag_name = os.environ.get("ACTIVECAMPAIGN_EBOOK_TAG", "Ebook Downloaded")
+        self.ebook_list_name = os.environ.get("ACTIVECAMPAIGN_EBOOK_LIST")
 
         if not account or not self.api_key:
             raise ValueError("ActiveCampaign credentials not configured")
 
-        self.base_url = f"https://{account}.api-us1.com/api/3"
+        if not self.ebook_list_name:
+            raise ValueError("ACTIVECAMPAIGN_EBOOK_LIST environment variable is required")
+
+        # Support both formats: "renato38.activehosted.com" or "renato38"
+        # The URL from ActiveCampaign dashboard is the source of truth
+        if "." in account:
+            # Full URL provided (e.g., "renato38.activehosted.com")
+            self.base_url = f"https://{account}/api/3"
+        else:
+            # Legacy format: just account name (defaults to api-us1.com)
+            self.base_url = f"https://{account}.api-us1.com/api/3"
         self.headers = {
             "Api-Token": self.api_key,
             "Content-Type": "application/json"
@@ -175,6 +186,71 @@ class ActiveCampaignService:
 
         return tag_id
 
+    def get_list_id(self, list_name: str) -> Optional[str]:
+        """Get list ID by list name.
+
+        Args:
+            list_name: Name of the list to find
+
+        Returns:
+            List ID (string) if found, None otherwise
+        """
+        response = self._request("GET", "/lists")
+        lists = response.get("lists", [])
+
+        for list_item in lists:
+            if list_item["name"].lower() == list_name.lower():
+                return list_item["id"]
+
+        return None
+
+    def get_list_id_by_name(self, list_name: str) -> str:
+        """Get list ID by list name, raising error if not found.
+
+        Note: List must exist in ActiveCampaign (created via dashboard).
+        This method does NOT create lists automatically.
+
+        Args:
+            list_name: Name of the list to find
+
+        Returns:
+            List ID (string)
+
+        Raises:
+            ValueError: If list doesn't exist
+        """
+        list_id = self.get_list_id(list_name)
+
+        if not list_id:
+            raise ValueError(
+                f"List '{list_name}' not found in ActiveCampaign. "
+                f"Please create it in the dashboard."
+            )
+
+        return list_id
+
+    def add_contact_to_list(self, contact_id: str, list_id: str) -> bool:
+        """Add contact to a list with active/subscribed status.
+
+        Args:
+            contact_id: ActiveCampaign contact ID (from sync_contact)
+            list_id: ActiveCampaign list ID (from get_list_id)
+
+        Returns:
+            True if successful
+        """
+        request_data = {
+            "contactList": {
+                "contact": contact_id,
+                "list": list_id,
+                "status": 1  # 1 = Active/Subscribed, 2 = Unsubscribed
+            }
+        }
+
+        self._request("POST", "/contactLists", request_data)
+        logger.info(f"Contact {contact_id} added to list {list_id}")
+        return True
+
     def add_tag_to_contact(self, contact_id: str, tag_id: str) -> bool:
         """Add tag to contact.
 
@@ -203,8 +279,9 @@ class ActiveCampaignService:
 
         Workflow:
         1. Sync contact (create or update)
-        2. Get ebook tag ID (must already exist)
-        3. Add tag to contact (triggers automation)
+        2. Add contact to list (required)
+        3. Get ebook tag ID (must already exist)
+        4. Add tag to contact (triggers automation)
 
         Args:
             email: Lead email address
@@ -215,6 +292,7 @@ class ActiveCampaignService:
             Dict with:
             - success: bool (True if all steps completed)
             - contact_id: str (ActiveCampaign contact ID to store in Firestore)
+            - list_id: str (ActiveCampaign list ID)
             - tag_id: str (ActiveCampaign tag ID)
         """
         # Parse name into first/last
@@ -230,14 +308,19 @@ class ActiveCampaignService:
             phone=phone
         )
 
-        # Step 2: Get tag ID (tag must already exist in ActiveCampaign)
+        # Step 2: Add to list (required)
+        list_id = self.get_list_id_by_name(self.ebook_list_name)
+        self.add_contact_to_list(contact_id, list_id)
+
+        # Step 3: Get tag ID (tag must already exist in ActiveCampaign)
         tag_id = self.get_tag_id_by_name(self.ebook_tag_name)
 
-        # Step 3: Add tag to contact
+        # Step 4: Add tag to contact (triggers automation)
         self.add_tag_to_contact(contact_id, tag_id)
 
         return {
             "success": True,
             "contact_id": contact_id,  # Store this in Firestore lead document
+            "list_id": list_id,
             "tag_id": tag_id
         }

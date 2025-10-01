@@ -185,12 +185,13 @@ def create_lead(req: https_fn.Request):
                 phone=phone or ""
             )
 
-            # Store ActiveCampaign contact ID in Firestore
+            # Store ActiveCampaign data in Firestore
             lead_doc_ref.update({
                 "activecampaign": {
                     "contactId": ac_result["contact_id"],
-                    "syncedAt": db.server_timestamp,
-                    "tagId": ac_result["tag_id"]
+                    "listId": ac_result["list_id"],
+                    "tagId": ac_result["tag_id"],
+                    "syncedAt": db.server_timestamp
                 }
             })
 
