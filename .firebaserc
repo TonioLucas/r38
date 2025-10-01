@@ -1,7 +1,7 @@
 {
   "projects": {
-    "default": "test-project",
-    "dev": "test-project",
-    "prod": "test-project"
+    "default": "r38tao-5bdf1",
+    "dev": "r38tao-5bdf1",
+    "prod": "r38tao-5bdf1"
   }
 }
