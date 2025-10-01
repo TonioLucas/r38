@@ -3,6 +3,8 @@
 import requests
 import os
 from typing import Dict, Any
+from datetime import datetime
+import pytz
 from firebase_functions import https_fn, options
 from flask import jsonify
 from src.apis.Db import Db
@@ -16,6 +18,11 @@ logger = get_logger(__name__)
 # reCAPTCHA v3 configuration
 RECAPTCHA_VERIFY_URL = "https://www.google.com/recaptcha/api/siteverify"
 RECAPTCHA_SCORE_THRESHOLD = 0.5
+
+def get_brazilian_timestamp():
+    """Get current timestamp in Brazilian timezone (America/Sao_Paulo)"""
+    brazil_tz = pytz.timezone('America/Sao_Paulo')
+    return datetime.now(brazil_tz)
 
 
 @https_fn.on_request(
@@ -137,7 +144,7 @@ def create_lead(req: https_fn.Request):
             "name": name,
             "email": email,
             "phone": phone,
-            "createdAt": db.server_timestamp,
+            "createdAt": get_brazilian_timestamp(),
             "ip": client_ip,
             "userAgent": user_agent,
             "utm": utm_data,
