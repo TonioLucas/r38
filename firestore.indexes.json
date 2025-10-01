@@ -1,7 +1,7 @@
 {
   "indexes": [
     {
-      "collectionGroup": "leads", 
+      "collectionGroup": "leads",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -9,17 +9,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt", 
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "leads",
-      "queryScope": "COLLECTION", 
-      "fields": [
-        {
-          "fieldPath": "download.lastDownloadedAt",
+          "fieldPath": "createdAt",
           "order": "DESCENDING"
         }
       ]
