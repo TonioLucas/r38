@@ -96,6 +96,8 @@ pip-delete-this-directory.txt
 *.sublime-project
 .cursor/
 **/.cursor/
+.claude/
+**/.claude/
 
 # OS Files
 .DS_Store
@@ -353,3 +355,28 @@ $RECYCLE.BIN/
 .directory
 .Trash-*
 .nfs*
+
+# Project-specific sensitive directories
+PRPs/
+tasks/
+scripts/
+
+# Root-level markdown files (keep subdirectory READMEs)
+/*.md
+# But allow README.md in root if it exists
+!/README.md
+
+# Playwright MCP
+.playwright-mcp/
+
+# Large files that shouldn't be in repo
+*.pdf
+*.epub
+*.mobi
+
+# Firebase config files (already tracked, but document here)
+# .firebaserc - KEEP (needed for deployment)
+# firebase.json - KEEP (needed for deployment)
+# firestore.rules - KEEP (needed for deployment)
+# firestore.indexes.json - KEEP (needed for deployment)
+# storage.rules - KEEP (needed for deployment)

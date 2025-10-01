@@ -16,7 +16,7 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { isDisposableEmail } from "@/utils/disposableDomains";
-import { formatPhoneBR, isValidPhoneBR } from "@/utils/phoneMask";
+import { MuiTelInput, matchIsValidTel } from "mui-tel-input";
 import { useSnackbar } from "notistack";
 import { trackEvent, GA_EVENTS } from "@/lib/analytics";
 import { executeRecaptcha, RECAPTCHA_ACTIONS } from "@/lib/recaptcha";
@@ -61,7 +61,7 @@ const schema = yup.object().shape({
     .optional()
     .test("valid-phone", "Telefone inválido", (value) => {
       if (!value || value === "") return true;
-      return isValidPhoneBR(value);
+      return matchIsValidTel(value);
     }),
   lgpdConsent: yup
     .boolean()
@@ -193,11 +193,6 @@ export function LeadForm({ onSubmit }: LeadFormProps) {
     }
   };
 
-  const handlePhoneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneBR(event.target.value);
-    setValue("phone", formatted, { shouldValidate: true });
-  };
-
   return (
     <Box component="form" onSubmit={handleSubmit(handleFormSubmit)} noValidate>
       <Stack spacing={3}>
@@ -206,7 +201,7 @@ export function LeadForm({ onSubmit }: LeadFormProps) {
         </Typography>
 
         <Typography variant="body1" textAlign="center" color="text.secondary" sx={{ mb: 2 }}>
-          Preencha seus dados para receber o link de download
+          Preencha seus dados para receber o e-book por e-mail
         </Typography>
 
         {success && (
@@ -259,20 +254,22 @@ export function LeadForm({ onSubmit }: LeadFormProps) {
         <Controller
           name="phone"
           control={control}
-          render={({ field }) => (
-            <TextField
-              {...field}
+          render={({ field: { ref: fieldRef, value, ...fieldProps }, fieldState }) => (
+            <MuiTelInput
+              {...fieldProps}
+              value={value ?? ''}
+              inputRef={fieldRef}
+              defaultCountry="BR"
               fullWidth
               label="Telefone (opcional)"
               variant="outlined"
-              error={!!errors.phone}
-              helperText={errors.phone?.message || "Ex: (11) 98888-7777"}
+              error={fieldState.invalid}
+              helperText={
+                fieldState.invalid
+                  ? errors.phone?.message
+                  : "Ex: +55 11 98888-7777"
+              }
               disabled={loading}
-              onChange={handlePhoneChange}
-              inputProps={{
-                autoComplete: "tel",
-                maxLength: 15,
-              }}
             />
           )}
         />

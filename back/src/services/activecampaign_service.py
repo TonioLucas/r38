@@ -1,0 +1,243 @@
+"""Service for ActiveCampaign API v3 integration."""
+
+import os
+import time
+import requests
+from typing import Dict, Any, Optional
+from src.util.logger import get_logger
+from src.exceptions.CustomError import ExternalServiceError
+from src.models.activecampaign_types import (
+    SyncContactRequest,
+    SyncContactResponse,
+    AddTagRequest,
+)
+
+logger = get_logger(__name__)
+
+
+class ActiveCampaignService:
+    """Service for ActiveCampaign API v3 integration.
+
+    Handles contact synchronization and tagging for lead automation.
+    Implements rate limiting to respect ActiveCampaign's 5 req/sec limit.
+    """
+
+    def __init__(self):
+        """Initialize ActiveCampaign service with environment configuration."""
+        account = os.environ.get("ACTIVECAMPAIGN_ACCOUNT")
+        self.api_key = os.environ.get("ACTIVECAMPAIGN_API_KEY")
+        self.ebook_tag_name = os.environ.get("ACTIVECAMPAIGN_EBOOK_TAG", "Ebook Downloaded")
+
+        if not account or not self.api_key:
+            raise ValueError("ActiveCampaign credentials not configured")
+
+        self.base_url = f"https://{account}.api-us1.com/api/3"
+        self.headers = {
+            "Api-Token": self.api_key,
+            "Content-Type": "application/json"
+        }
+        self.last_request_time = 0
+
+    def _rate_limit(self):
+        """Ensure 200ms between requests (4 req/sec, conservative).
+
+        ActiveCampaign limits to 5 req/sec, so we use 200ms (4 req/sec)
+        to provide a safety margin.
+        """
+        elapsed = time.time() - self.last_request_time
+        if elapsed < 0.2:
+            time.sleep(0.2 - elapsed)
+        self.last_request_time = time.time()
+
+    def _request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict[str, Any]:
+        """Make API request with error handling and rate limiting.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            endpoint: API endpoint path (e.g., "/contact/sync")
+            data: Optional request body data
+
+        Returns:
+            Response JSON data
+
+        Raises:
+            ExternalServiceError: If the API request fails
+        """
+        self._rate_limit()
+
+        url = f"{self.base_url}{endpoint}"
+
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=self.headers,
+                json=data,
+                timeout=10
+            )
+            response.raise_for_status()
+            return response.json()
+
+        except requests.exceptions.Timeout:
+            logger.error(f"ActiveCampaign API timeout: {endpoint}")
+            raise ExternalServiceError(
+                service="ActiveCampaign",
+                message="Request timeout",
+                status_code=None
+            )
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"ActiveCampaign HTTP error: {e.response.status_code} - {e.response.text}")
+            raise ExternalServiceError(
+                service="ActiveCampaign",
+                message=f"API error: {e.response.text}",
+                status_code=e.response.status_code
+            )
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"ActiveCampaign request failed: {e}")
+            raise ExternalServiceError(
+                service="ActiveCampaign",
+                message=f"Request failed: {str(e)}",
+                status_code=None
+            )
+
+    def sync_contact(self, email: str, first_name: str = "", last_name: str = "", phone: str = "") -> str:
+        """Sync (create or update) contact in ActiveCampaign.
+
+        Uses the /contact/sync endpoint which handles both create and update
+        operations based on the email address (upsert).
+
+        Args:
+            email: Contact email address (required)
+            first_name: Contact first name
+            last_name: Contact last name
+            phone: Contact phone number in E.164 format (e.g., +5511988887777)
+
+        Returns:
+            Contact ID (string) from ActiveCampaign
+        """
+        request_data: SyncContactRequest = {
+            "contact": {
+                "email": email,
+                "firstName": first_name,
+                "lastName": last_name,
+                "phone": phone
+            }
+        }
+
+        response: SyncContactResponse = self._request("POST", "/contact/sync", request_data)
+        contact_id = response["contact"]["id"]
+
+        logger.info(f"ActiveCampaign contact synced: {email} (ID: {contact_id})")
+        return contact_id
+
+    def get_tag_id(self, tag_name: str) -> Optional[str]:
+        """Get tag ID by tag name.
+
+        Args:
+            tag_name: Name of the tag to find
+
+        Returns:
+            Tag ID (string) if found, None otherwise
+        """
+        response = self._request("GET", "/tags")
+        tags = response.get("tags", [])
+
+        for tag in tags:
+            if tag["tag"].lower() == tag_name.lower():
+                return tag["id"]
+
+        return None
+
+    def get_tag_id_by_name(self, tag_name: str) -> str:
+        """Get tag ID by tag name, raising error if not found.
+
+        Note: Tag must exist in ActiveCampaign (created via dashboard).
+        This method does NOT create tags automatically.
+
+        Args:
+            tag_name: Name of the tag to find
+
+        Returns:
+            Tag ID (string)
+
+        Raises:
+            ValueError: If tag doesn't exist
+        """
+        tag_id = self.get_tag_id(tag_name)
+
+        if not tag_id:
+            raise ValueError(
+                f"Tag '{tag_name}' not found in ActiveCampaign. "
+                f"Please create it in the dashboard."
+            )
+
+        return tag_id
+
+    def add_tag_to_contact(self, contact_id: str, tag_id: str) -> bool:
+        """Add tag to contact.
+
+        Args:
+            contact_id: ActiveCampaign contact ID (from sync_contact)
+            tag_id: ActiveCampaign tag ID (from get_tag_id)
+
+        Returns:
+            True if successful
+        """
+        request_data: AddTagRequest = {
+            "contactTag": {
+                "contact": contact_id,
+                "tag": tag_id
+            }
+        }
+
+        self._request("POST", "/contactTags", request_data)
+        logger.info(f"Tag {tag_id} added to contact {contact_id}")
+        return True
+
+    def process_lead(self, email: str, name: str, phone: str = "") -> Dict[str, Any]:
+        """Complete lead processing workflow.
+
+        This is the main method to call from create_lead.py.
+
+        Workflow:
+        1. Sync contact (create or update)
+        2. Get ebook tag ID (must already exist)
+        3. Add tag to contact (triggers automation)
+
+        Args:
+            email: Lead email address
+            name: Lead full name
+            phone: Lead phone number in E.164 format
+
+        Returns:
+            Dict with:
+            - success: bool (True if all steps completed)
+            - contact_id: str (ActiveCampaign contact ID to store in Firestore)
+            - tag_id: str (ActiveCampaign tag ID)
+        """
+        # Parse name into first/last
+        name_parts = name.split(maxsplit=1)
+        first_name = name_parts[0] if name_parts else ""
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+        # Step 1: Sync contact
+        contact_id = self.sync_contact(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            phone=phone
+        )
+
+        # Step 2: Get tag ID (tag must already exist in ActiveCampaign)
+        tag_id = self.get_tag_id_by_name(self.ebook_tag_name)
+
+        # Step 3: Add tag to contact
+        self.add_tag_to_contact(contact_id, tag_id)
+
+        return {
+            "success": True,
+            "contact_id": contact_id,  # Store this in Firestore lead document
+            "tag_id": tag_id
+        }

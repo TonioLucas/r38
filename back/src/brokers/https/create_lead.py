@@ -9,6 +9,7 @@ from src.apis.Db import Db
 # CORS is handled by Firebase Functions v2 decorator, no need for manual handling
 from src.util.logger import get_logger
 from src.util.rate_limiter import rate_limiter
+from src.services.activecampaign_service import ActiveCampaignService
 
 logger = get_logger(__name__)
 
@@ -174,9 +175,35 @@ def create_lead(req: https_fn.Request):
             lead_doc_ref.set(lead_data)
             lead_id = lead_doc_ref.id
             logger.info(f"Created new lead: {lead_id} for email: {email}")
-        
+
+        # ActiveCampaign integration - sync lead to marketing automation
+        try:
+            ac_service = ActiveCampaignService()
+            ac_result = ac_service.process_lead(
+                email=email,
+                name=name,
+                phone=phone or ""
+            )
+
+            # Store ActiveCampaign contact ID in Firestore
+            lead_doc_ref.update({
+                "activecampaign": {
+                    "contactId": ac_result["contact_id"],
+                    "syncedAt": db.server_timestamp,
+                    "tagId": ac_result["tag_id"]
+                }
+            })
+
+            logger.info(f"ActiveCampaign sync successful: {ac_result}")
+
+        except Exception as e:
+            # Log error but don't fail lead creation
+            # Lead is already saved in Firestore
+            logger.error(f"ActiveCampaign sync failed for {email}: {e}", exc_info=True)
+            # Continue execution - this is non-critical
+
         logger.info(f"Lead processed successfully: {lead_id}")
-        
+
         return jsonify({
             "success": True,
             "leadId": lead_id

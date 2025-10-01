@@ -1,3 +1,6 @@
+// DEPRECATED: This file is no longer used after upgrading to mui-tel-input
+// Kept for reference only. Can be safely deleted.
+
 /**
  * Format Brazilian phone number with mask
  * @param value The phone number to format
