@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { Settings as SettingsIcon, People as PeopleIcon, ExitToApp as LogoutIcon } from "@mui/icons-material";
 import { SettingsForm } from "@/sections/admin/SettingsForm";
-import { LeadsTable } from "@/sections/admin/LeadsTable";
+import LeadsAnalyticsDashboard from "@/sections/admin/LeadsAnalyticsDashboard";
 import { useAuth } from "@/auth/useAuth";
 import { AuthGuard } from "@/components/guards/AuthGuard";
 import { canAccessAdmin } from "@/config/adminWhitelist";
@@ -167,7 +167,7 @@ export default function AdminPage() {
         </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
-            <LeadsTable />
+            <LeadsAnalyticsDashboard />
           </TabPanel>
         </Box>
       </Container>
