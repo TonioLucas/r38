@@ -149,7 +149,7 @@ function ThankYouPageContent() {
 
             <Alert severity="warning" sx={{ width: "100%", mt: 2 }}>
               <Typography variant="body1" fontWeight={600}>
-                ⚠️ IMPORTANTE: Verifique sua pasta de SPAM/LIXO ELETRÔNICO!
+                IMPORTANTE: Verifique sua pasta de SPAM/LIXO ELETRÔNICO!
               </Typography>
               <Typography variant="body2" sx={{ mt: 1 }}>
                 O e-mail pode ter sido direcionado para lá. Se encontrar, marque como "não é spam" para receber futuras comunicações.
