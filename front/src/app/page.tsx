@@ -135,20 +135,19 @@ export default function Home() {
 
         <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
           <Stack spacing={4} alignItems="center" textAlign="center">
-            {/* Hero Image with Text Overlay */}
-            <Box
-              sx={{
-                position: 'relative',
-                width: '100%',
-                aspectRatio: settings?.images?.[0]?.url ? '3/4' : undefined,
-                maxWidth: { xs: 300, sm: 400, md: 500 },
-                borderRadius: 2,
-                overflow: 'hidden',
-                boxShadow: settings?.images?.[0]?.url ? "0 10px 40px rgba(255,140,0,0.3)" : undefined,
-              }}
-            >
-              {/* Background Image */}
-              {settings?.images?.[0]?.url && (
+            {/* Hero Image - Always visible if exists */}
+            {settings?.images?.[0]?.url && (
+              <Box
+                sx={{
+                  position: 'relative',
+                  width: '100%',
+                  aspectRatio: '3/4',
+                  maxWidth: { xs: 300, sm: 400, md: 500 },
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  boxShadow: "0 10px 40px rgba(255,140,0,0.3)",
+                }}
+              >
                 <Image
                   src={settings.images[0].url}
                   alt={settings.images[0].alt}
@@ -157,82 +156,63 @@ export default function Home() {
                   sizes="(max-width: 600px) 100vw, (max-width: 1200px) 80vw, 500px"
                   style={{ objectFit: "cover" }}
                 />
-              )}
+              </Box>
+            )}
 
-              {/* Text Content (Overlay when image exists, normal when no image) */}
-              <Stack
-                spacing={3}
-                sx={{
-                  position: settings?.images?.[0]?.url ? 'absolute' : 'relative',
-                  top: settings?.images?.[0]?.url ? '50%' : 'auto',
-                  left: settings?.images?.[0]?.url ? '50%' : 'auto',
-                  transform: settings?.images?.[0]?.url ? 'translate(-50%, -50%)' : 'none',
-                  zIndex: 1,
-                  textAlign: 'center',
-                  width: '100%',
-                  padding: settings?.images?.[0]?.url ? 3 : 0,
-                  background: settings?.images?.[0]?.url ? 'rgba(0, 0, 0, 0.65)' : 'transparent',
-                  borderRadius: 2,
-                }}
-              >
-                <Typography
-                  variant="h1"
-                  component="h1"
-                  sx={{
-                    fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
-                    fontWeight: 900,
-                    lineHeight: 1.1,
-                    background: settings?.images?.[0]?.url
-                      ? undefined
-                      : "linear-gradient(45deg, #FF8C00 30%, #FFD54F 90%)",
-                    WebkitBackgroundClip: settings?.images?.[0]?.url ? undefined : "text",
-                    WebkitTextFillColor: settings?.images?.[0]?.url ? undefined : "transparent",
-                    color: settings?.images?.[0]?.url ? '#ffffff' : undefined,
-                    textShadow: settings?.images?.[0]?.url
-                      ? "2px 2px 4px rgba(0,0,0,0.8)"
-                      : "0 0 30px rgba(255,140,0,0.3)",
-                  }}
-                >
-                  {headline}
-                </Typography>
+            {/* Text Content - Always visible below image */}
+            <Typography
+              variant="h1"
+              component="h1"
+              sx={{
+                fontSize: { xs: "2.5rem", md: "3.5rem", lg: "4rem" },
+                fontWeight: 900,
+                lineHeight: 1.1,
+                mb: 2,
+                background: "linear-gradient(45deg, #FF8C00 30%, #FFD54F 90%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                textShadow: "0 0 30px rgba(255,140,0,0.3)",
+              }}
+            >
+              {headline}
+            </Typography>
 
-                <Typography
-                  variant="h5"
-                  component="h2"
-                  sx={{
-                    fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" },
-                    fontWeight: 400,
-                    lineHeight: 1.6,
-                    color: settings?.images?.[0]?.url ? '#ffffff' : "rgba(255, 255, 255, 0.9)",
-                    textShadow: settings?.images?.[0]?.url ? "1px 1px 3px rgba(0,0,0,0.8)" : undefined,
-                  }}
-                >
-                  {subheadline}
-                </Typography>
-              </Stack>
-            </Box>
+            <Typography
+              variant="h5"
+              component="h2"
+              sx={{
+                fontSize: { xs: "1.1rem", md: "1.25rem" },
+                fontWeight: 400,
+                lineHeight: 1.6,
+                maxWidth: "800px",
+                color: "rgba(255, 255, 255, 0.9)",
+                mb: 3,
+              }}
+            >
+              {subheadline}
+            </Typography>
 
-            {/* CTA Button - Always visible */}
+            {/* CTA Button */}
             <Button
               variant="contained"
               color="primary"
               size="large"
-                sx={{
-                  fontSize: "1.125rem",
-                  py: 1.5,
-                  px: 4,
-                  fontWeight: 700,
-                  boxShadow: "0 4px 20px rgba(255,140,0,0.4)",
-                  "&:hover": {
-                    transform: "translateY(-2px)",
-                    boxShadow: "0 6px 30px rgba(255,140,0,0.6)",
-                  },
-                  transition: "all 0.3s ease",
-                }}
-                href="#lead-form"
-              >
-                {ctaText}
-              </Button>
+              sx={{
+                fontSize: "1.125rem",
+                py: 1.5,
+                px: 4,
+                fontWeight: 700,
+                boxShadow: "0 4px 20px rgba(255,140,0,0.4)",
+                "&:hover": {
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 6px 30px rgba(255,140,0,0.6)",
+                },
+                transition: "all 0.3s ease",
+              }}
+              href="#lead-form"
+            >
+              {ctaText}
+            </Button>
           </Stack>
         </Container>
       </Box>
