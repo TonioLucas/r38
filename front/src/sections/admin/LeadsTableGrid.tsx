@@ -98,7 +98,15 @@ export function LeadsTableGrid({ leads }: LeadsTableGridProps) {
     if (!timestamp) return "-";
     try {
       const date = timestamp.toDate();
-      return format(date, "dd/MM/yyyy HH:mm", { locale: ptBR });
+      return date.toLocaleString('pt-BR', {
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
     } catch {
       return "-";
     }
@@ -117,7 +125,7 @@ export function LeadsTableGrid({ leads }: LeadsTableGridProps) {
         "Term",
         "Content",
         "First Touch Source",
-        "Downloads 24h",
+        "AC Contact ID",
         "Score reCAPTCHA",
       ];
 
@@ -132,7 +140,7 @@ export function LeadsTableGrid({ leads }: LeadsTableGridProps) {
         lead.utm?.lastTouch?.term || "",
         lead.utm?.lastTouch?.content || "",
         lead.utm?.firstTouch?.source || "",
-        lead.download?.count24h || 0,
+        lead.activecampaign?.contactId || "",
         lead.recaptchaScore || 0,
       ]);
 
@@ -247,7 +255,7 @@ export function LeadsTableGrid({ leads }: LeadsTableGridProps) {
               <TableCell>Medium</TableCell>
               <TableCell>Campaign</TableCell>
               <TableCell>First Touch Source</TableCell>
-              <TableCell align="center">Downloads 24h</TableCell>
+              <TableCell>AC Contact ID</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -267,7 +275,7 @@ export function LeadsTableGrid({ leads }: LeadsTableGridProps) {
                   <TableCell>{lead.utm?.lastTouch?.medium || "-"}</TableCell>
                   <TableCell>{lead.utm?.lastTouch?.campaign || "-"}</TableCell>
                   <TableCell>{lead.utm?.firstTouch?.source || "-"}</TableCell>
-                  <TableCell align="center">{lead.download?.count24h || 0}</TableCell>
+                  <TableCell>{lead.activecampaign?.contactId || "-"}</TableCell>
                 </TableRow>
               ))
             )}

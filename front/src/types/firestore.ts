@@ -106,6 +106,12 @@ export interface LeadDoc extends BaseDocument {
     lastDownloadedAt?: Timestamp;
     count24h: number;
   };
+  activecampaign?: {
+    contactId: string;
+    listId: string;
+    tagId: string;
+    syncedAt: Timestamp;
+  };
 }
 
 // Settings document (singleton for app settings)
