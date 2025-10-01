@@ -28,12 +28,16 @@ class ActiveCampaignService:
         self.api_key = os.environ.get("ACTIVECAMPAIGN_API_KEY")
         self.ebook_tag_name = os.environ.get("ACTIVECAMPAIGN_EBOOK_TAG", "Ebook Downloaded")
         self.ebook_list_name = os.environ.get("ACTIVECAMPAIGN_EBOOK_LIST")
+        self.download_field_id = os.environ.get("ACTIVECAMPAIGN_DOWNLOAD_FIELD_ID")
 
         if not account or not self.api_key:
             raise ValueError("ActiveCampaign credentials not configured")
 
         if not self.ebook_list_name:
             raise ValueError("ACTIVECAMPAIGN_EBOOK_LIST environment variable is required")
+
+        if not self.download_field_id:
+            raise ValueError("ACTIVECAMPAIGN_DOWNLOAD_FIELD_ID environment variable is required")
 
         # Support both formats: "renato38.activehosted.com" or "renato38"
         # The URL from ActiveCampaign dashboard is the source of truth
@@ -113,8 +117,8 @@ class ActiveCampaignService:
                 status_code=None
             )
 
-    def sync_contact(self, email: str, first_name: str = "", last_name: str = "", phone: str = "") -> str:
-        """Sync (create or update) contact in ActiveCampaign.
+    def sync_contact(self, email: str, first_name: str = "", last_name: str = "", phone: str = "", download_link: str = "") -> str:
+        """Sync (create or update) contact in ActiveCampaign with custom fields.
 
         Uses the /contact/sync endpoint which handles both create and update
         operations based on the email address (upsert).
@@ -124,6 +128,7 @@ class ActiveCampaignService:
             first_name: Contact first name
             last_name: Contact last name
             phone: Contact phone number in E.164 format (e.g., +5511988887777)
+            download_link: Download URL for the ebook (stored in custom field)
 
         Returns:
             Contact ID (string) from ActiveCampaign
@@ -136,6 +141,15 @@ class ActiveCampaignService:
                 "phone": phone
             }
         }
+
+        # Add custom field for download link if provided
+        if download_link:
+            request_data["contact"]["fieldValues"] = [
+                {
+                    "field": self.download_field_id,
+                    "value": download_link
+                }
+            ]
 
         response: SyncContactResponse = self._request("POST", "/contact/sync", request_data)
         contact_id = response["contact"]["id"]
@@ -272,13 +286,13 @@ class ActiveCampaignService:
         logger.info(f"Tag {tag_id} added to contact {contact_id}")
         return True
 
-    def process_lead(self, email: str, name: str, phone: str = "") -> Dict[str, Any]:
-        """Complete lead processing workflow.
+    def process_lead(self, email: str, name: str, phone: str = "", download_link: str = "") -> Dict[str, Any]:
+        """Complete lead processing workflow with download link.
 
         This is the main method to call from create_lead.py.
 
         Workflow:
-        1. Sync contact (create or update)
+        1. Sync contact (create or update) with download link custom field
         2. Add contact to list (required)
         3. Get ebook tag ID (must already exist)
         4. Add tag to contact (triggers automation)
@@ -287,6 +301,7 @@ class ActiveCampaignService:
             email: Lead email address
             name: Lead full name
             phone: Lead phone number in E.164 format
+            download_link: Download URL for the ebook (stored in custom field)
 
         Returns:
             Dict with:
@@ -300,12 +315,13 @@ class ActiveCampaignService:
         first_name = name_parts[0] if name_parts else ""
         last_name = name_parts[1] if len(name_parts) > 1 else ""
 
-        # Step 1: Sync contact
+        # Step 1: Sync contact with download link
         contact_id = self.sync_contact(
             email=email,
             first_name=first_name,
             last_name=last_name,
-            phone=phone
+            phone=phone,
+            download_link=download_link
         )
 
         # Step 2: Add to list (required)

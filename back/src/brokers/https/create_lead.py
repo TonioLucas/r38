@@ -131,7 +131,7 @@ def create_lead(req: https_fn.Request):
         
         # TEMPORARILY DISABLED: reCAPTCHA verification
         # Skip reCAPTCHA verification for now
-        logger.info(f"reCAPTCHA verification skipped (temporarily disabled)")
+        logger.info("reCAPTCHA verification skipped (temporarily disabled)")
         recaptcha_score = 1.0  # Fake perfect score
         
         # Store lead in database
@@ -185,11 +185,15 @@ def create_lead(req: https_fn.Request):
 
         # ActiveCampaign integration - sync lead to marketing automation
         try:
+            # Generate download link for ActiveCampaign email
+            download_url = f"https://renato38.com.br/download-ebook?email={email}"
+
             ac_service = ActiveCampaignService()
             ac_result = ac_service.process_lead(
                 email=email,
                 name=name,
-                phone=phone or ""
+                phone=phone or "",
+                download_link=download_url
             )
 
             # Store ActiveCampaign data in Firestore

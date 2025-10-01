@@ -1,6 +1,12 @@
 """ActiveCampaign API type definitions using TypedDict."""
 
-from typing import TypedDict, Optional
+from typing import TypedDict, List
+
+
+class FieldValue(TypedDict):
+    """Custom field value for ActiveCampaign contact."""
+    field: str  # Field ID
+    value: str  # Field value
 
 
 class ActiveCampaignContact(TypedDict, total=False):
@@ -9,6 +15,7 @@ class ActiveCampaignContact(TypedDict, total=False):
     firstName: str
     lastName: str
     phone: str
+    fieldValues: List[FieldValue]  # Custom fields
 
 
 class SyncContactRequest(TypedDict):
