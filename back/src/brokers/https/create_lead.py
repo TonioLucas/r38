@@ -2,11 +2,12 @@
 
 import requests
 import os
-from typing import Dict, Any
-from datetime import datetime
+from typing import Dict, Any, Optional
+from datetime import datetime, timedelta
 import pytz
 from firebase_functions import https_fn, options
 from flask import jsonify
+from firebase_admin import storage
 from src.apis.Db import Db
 # CORS is handled by Firebase Functions v2 decorator, no need for manual handling
 from src.util.logger import get_logger
@@ -185,8 +186,15 @@ def create_lead(req: https_fn.Request):
 
         # ActiveCampaign integration - sync lead to marketing automation
         try:
-            # Generate download link for ActiveCampaign email
-            download_url = f"https://renato38.com.br/download-ebook?email={email}"
+            # Generate secure signed download URL (time-limited, no user interaction needed)
+            # This URL expires after EBOOK_DOWNLOAD_LINK_TTL_MINUTES (default: 10 minutes)
+            # But can be used multiple times within rate limits (3 downloads per 24h)
+            download_url = _generate_secure_download_url(db, email)
+
+            if not download_url:
+                # Fallback to thank you page if URL generation fails
+                download_url = f"https://renato38.com.br/obrigado?email={email}"
+                logger.warning(f"Failed to generate signed URL, using fallback for {email}")
 
             ac_service = ActiveCampaignService()
             ac_result = ac_service.process_lead(
@@ -323,3 +331,66 @@ def _verify_recaptcha(token: str, client_ip: str) -> float:
     except (ValueError, KeyError) as e:
         logger.error(f"Invalid reCAPTCHA response: {e}")
         raise Exception("Invalid reCAPTCHA response")
+
+
+def _generate_secure_download_url(db: Db, email: str) -> Optional[str]:
+    """Generate secure signed download URL for the ebook.
+
+    This generates a Firebase Storage signed URL that:
+    - Expires after EBOOK_DOWNLOAD_LINK_TTL_MINUTES (default: 10 minutes)
+    - Points directly to the PDF file in Firebase Storage
+    - Does not require additional authentication
+    - Can be clicked multiple times within expiration (but download limits still apply via tracking)
+
+    Args:
+        db: Database instance
+        email: Lead email (for logging purposes)
+
+    Returns:
+        Signed download URL string or None if generation fails
+    """
+    try:
+        # Get e-book storage path from settings
+        settings_doc = db.collections["settings"].document("main").get()
+
+        if not settings_doc.exists:
+            logger.warning("Settings document not found")
+            return None
+
+        settings_data = settings_doc.to_dict()
+        ebook_config = settings_data.get("ebook", {})
+        storage_path = ebook_config.get("storagePath")
+
+        if not storage_path:
+            logger.warning("E-book storage path not configured in settings")
+            return None
+
+        # Remove leading slash if present
+        if storage_path.startswith("/"):
+            storage_path = storage_path[1:]
+
+        # Get TTL from environment or use default
+        ttl_minutes = int(os.environ.get("EBOOK_DOWNLOAD_LINK_TTL_MINUTES", "10"))
+
+        # Generate signed URL
+        bucket = storage.bucket()
+        blob = bucket.blob(storage_path)
+
+        # Check if file exists
+        if not blob.exists():
+            logger.error(f"File not found in storage: {storage_path}")
+            return None
+
+        signed_url = blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(minutes=ttl_minutes),
+            method="GET",
+        )
+
+        logger.info(f"Generated signed download URL for {email}, expires in {ttl_minutes} minutes")
+
+        return signed_url
+
+    except Exception as e:
+        logger.error(f"Failed to generate signed URL for {email}: {e}", exc_info=True)
+        return None
