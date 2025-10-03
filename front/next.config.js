@@ -13,6 +13,12 @@ const nextConfig = {
     ],
   },
   trailingSlash: true,
+  eslint: {
+    // Only run ESLint on these directories during production builds
+    dirs: ['src'],
+    // Don't fail the build on ESLint errors (use npm run lint to check)
+    ignoreDuringBuilds: true,
+  },
 }
 
 module.exports = nextConfig

@@ -4,6 +4,8 @@ import {
   TimeSeriesDataPoint,
   DistributionDataPoint,
   CampaignPerformance,
+  HourlyLeadData,
+  DailyLeadData,
 } from "@/types/analytics";
 
 /**
@@ -13,24 +15,20 @@ import {
  * @returns Array of time-series data points
  */
 export function transformToTimeSeriesData(
-  leads: LeadDoc[],
-  groupBy: 'day' | 'week' = 'day'
+  leads: LeadDoc[]
 ): TimeSeriesDataPoint[] {
   // Group leads by date
-  const groupedData: Record<string, { leads: number; conversions: number }> = {};
+  const groupedData: Record<string, { leads: number }> = {};
 
   leads.forEach((lead) => {
     const date = startOfDay(lead.createdAt.toDate());
     const dateKey = format(date, "yyyy-MM-dd");
 
     if (!groupedData[dateKey]) {
-      groupedData[dateKey] = { leads: 0, conversions: 0 };
+      groupedData[dateKey] = { leads: 0 };
     }
 
     groupedData[dateKey].leads += 1;
-    if (lead.download && lead.download.count24h > 0) {
-      groupedData[dateKey].conversions += 1;
-    }
   });
 
   // Convert to array and sort by date
@@ -38,15 +36,8 @@ export function transformToTimeSeriesData(
     .map(([date, data]) => ({
       date: format(parseISO(date), "MMM dd"), // "Jan 15"
       leads: data.leads,
-      conversions: data.conversions,
-      conversionRate: data.leads > 0 ? (data.conversions / data.leads) * 100 : 0,
     }))
-    .sort((a, b) => {
-      // Parse the "MMM dd" format back to dates for sorting
-      const dateA = new Date(2024, 0, 1); // placeholder year
-      const dateB = new Date(2024, 0, 1);
-      return dateA.getTime() - dateB.getTime();
-    });
+    .sort();
 
   return dataPoints;
 }
@@ -114,41 +105,31 @@ export function transformToCampaignPerformanceData(
     source: string;
     medium: string;
     totalLeads: number;
-    conversions: number;
   }> = {};
 
   leads.forEach((lead) => {
     const campaign = lead.utm?.lastTouch?.campaign || "No Campaign";
     const source = lead.utm?.lastTouch?.source || "Direct";
     const medium = lead.utm?.lastTouch?.medium || "None";
-    const isConverted = lead.download && lead.download.count24h > 0;
 
     if (!campaignData[campaign]) {
       campaignData[campaign] = {
         source,
         medium,
         totalLeads: 0,
-        conversions: 0,
       };
     }
 
     campaignData[campaign].totalLeads += 1;
-    if (isConverted) {
-      campaignData[campaign].conversions += 1;
-    }
   });
 
-  // Convert to array and calculate conversion rates
+  // Convert to array
   const performanceData: CampaignPerformance[] = Object.entries(campaignData).map(
     ([campaign, data]) => ({
       campaign,
       source: data.source,
       medium: data.medium,
       totalLeads: data.totalLeads,
-      conversions: data.conversions,
-      conversionRate: data.totalLeads > 0
-        ? (data.conversions / data.totalLeads) * 100
-        : 0,
     })
   );
 
@@ -156,6 +137,61 @@ export function transformToCampaignPerformanceData(
   return performanceData
     .sort((a, b) => b.totalLeads - a.totalLeads)
     .slice(0, topN);
+}
+
+/**
+ * Transform leads data into hourly data for hour-of-day analysis
+ * @param leads - Array of leads to transform
+ * @returns Array of hourly data points (0-23)
+ */
+export function transformToHourlyData(leads: LeadDoc[]): HourlyLeadData[] {
+  const hourlyMap: Record<number, number> = {};
+
+  // Initialize all 24 hours
+  for (let hour = 0; hour < 24; hour++) {
+    hourlyMap[hour] = 0;
+  }
+
+  // Aggregate leads by hour
+  leads.forEach((lead) => {
+    const hour = lead.createdAt.toDate().getHours();
+    hourlyMap[hour]++;
+  });
+
+  // Transform to array format
+  return Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    leads: hourlyMap[hour],
+  }));
+}
+
+/**
+ * Transform leads data into daily data for day-of-week analysis
+ * @param leads - Array of leads to transform
+ * @returns Array of daily data points (Monday-Sunday)
+ */
+export function transformToDailyData(leads: LeadDoc[]): DailyLeadData[] {
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const dailyMap: Record<number, number> = {};
+
+  // Initialize all 7 days
+  for (let day = 0; day < 7; day++) {
+    dailyMap[day] = 0;
+  }
+
+  // Aggregate leads by day of week
+  leads.forEach((lead) => {
+    const jsDay = lead.createdAt.toDate().getDay(); // 0=Sun, 6=Sat
+    const dayIndex = (jsDay + 6) % 7; // Convert to 0=Mon, 6=Sun
+    dailyMap[dayIndex]++;
+  });
+
+  // Transform to array format
+  return Array.from({ length: 7 }, (_, dayIndex) => ({
+    dayOfWeek: DAYS[dayIndex],
+    dayIndex,
+    leads: dailyMap[dayIndex],
+  }));
 }
 
 /**

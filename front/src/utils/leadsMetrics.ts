@@ -13,13 +13,6 @@ export function calculateMetrics(
 ): LeadsMetrics {
   const totalLeads = leads.length;
 
-  // Calculate conversions (leads with downloads in last 24h)
-  const totalConverted = leads.filter(
-    (lead) => lead.download && lead.download.count24h > 0
-  ).length;
-
-  const conversionRate = totalLeads > 0 ? (totalConverted / totalLeads) * 100 : 0;
-
   // Group by source and count occurrences
   const sourceCounts: Record<string, number> = {};
   leads.forEach((lead) => {
@@ -40,6 +33,50 @@ export function calculateMetrics(
   // Calculate recent leads (last 24 hours)
   const recentLeads24h = getRecentLeads24h(leads);
 
+  // Calculate growth rates
+  const now = Date.now();
+  const oneDayAgo = now - 24 * 60 * 60 * 1000;
+  const twoDaysAgo = now - 2 * 24 * 60 * 60 * 1000;
+  const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const twoWeeksAgo = now - 14 * 24 * 60 * 60 * 1000;
+
+  const leadsYesterday = leads.filter((lead) => {
+    const createdTime = lead.createdAt.toDate().getTime();
+    return createdTime >= twoDaysAgo && createdTime < oneDayAgo;
+  }).length;
+
+  const leadsToday = leads.filter((lead) => {
+    const createdTime = lead.createdAt.toDate().getTime();
+    return createdTime >= oneDayAgo;
+  }).length;
+
+  const leadsLastWeek = leads.filter((lead) => {
+    const createdTime = lead.createdAt.toDate().getTime();
+    return createdTime >= twoWeeksAgo && createdTime < oneWeekAgo;
+  }).length;
+
+  const leadsThisWeek = leads.filter((lead) => {
+    const createdTime = lead.createdAt.toDate().getTime();
+    return createdTime >= oneWeekAgo;
+  }).length;
+
+  const dailyGrowthRate = leadsYesterday > 0
+    ? ((leadsToday - leadsYesterday) / leadsYesterday) * 100
+    : 0;
+
+  const weeklyGrowthRate = leadsLastWeek > 0
+    ? ((leadsThisWeek - leadsLastWeek) / leadsLastWeek) * 100
+    : 0;
+
+  // Calculate ActiveCampaign sync metrics
+  const syncedToActiveCampaign = leads.filter(
+    (lead) => lead.activecampaign?.contactId
+  ).length;
+
+  const syncRate = totalLeads > 0
+    ? (syncedToActiveCampaign / totalLeads) * 100
+    : 0;
+
   // Calculate period comparison
   const periodComparison = calculatePeriodComparison(
     leads,
@@ -48,27 +85,14 @@ export function calculateMetrics(
 
   return {
     totalLeads,
-    totalConverted,
-    conversionRate,
     topSource,
     recentLeads24h,
+    dailyGrowthRate,
+    weeklyGrowthRate,
+    syncedToActiveCampaign,
+    syncRate,
     periodComparison,
   };
-}
-
-/**
- * Calculate conversion rate as a percentage
- * @param leads - Array of leads
- * @returns Conversion rate percentage
- */
-export function calculateConversionRate(leads: LeadDoc[]): number {
-  if (leads.length === 0) return 0;
-
-  const converted = leads.filter(
-    (lead) => lead.download && lead.download.count24h > 0
-  ).length;
-
-  return (converted / leads.length) * 100;
 }
 
 /**
@@ -144,7 +168,6 @@ export function calculatePeriodComparison(
   previousLeads: LeadDoc[]
 ): {
   leadsChange: number;
-  conversionChange: number;
 } {
   const currentTotal = currentLeads.length;
   const previousTotal = previousLeads.length;
@@ -154,25 +177,7 @@ export function calculatePeriodComparison(
     ? ((currentTotal - previousTotal) / previousTotal) * 100
     : 0;
 
-  // Calculate conversion rate change
-  const currentConverted = currentLeads.filter(
-    (lead) => lead.download && lead.download.count24h > 0
-  ).length;
-  const previousConverted = previousLeads.filter(
-    (lead) => lead.download && lead.download.count24h > 0
-  ).length;
-
-  const currentConversionRate = currentTotal > 0
-    ? (currentConverted / currentTotal) * 100
-    : 0;
-  const previousConversionRate = previousTotal > 0
-    ? (previousConverted / previousTotal) * 100
-    : 0;
-
-  const conversionChange = currentConversionRate - previousConversionRate;
-
   return {
     leadsChange,
-    conversionChange,
   };
 }

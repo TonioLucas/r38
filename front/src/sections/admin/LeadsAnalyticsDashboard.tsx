@@ -89,6 +89,8 @@ export default function LeadsAnalyticsDashboard() {
     timeSeriesData,
     sourceDistribution,
     campaignPerformance,
+    hourlyData,
+    dailyData,
     filteredLeads,
   } = useLeadsAnalytics(allLeads, dateRange, utmFilters);
 
@@ -134,6 +136,8 @@ export default function LeadsAnalyticsDashboard() {
         timeSeriesData={timeSeriesData}
         sourceDistribution={sourceDistribution}
         campaignPerformance={campaignPerformance}
+        hourlyData={hourlyData}
+        dailyData={dailyData}
       />
 
       {/* Enhanced Table */}

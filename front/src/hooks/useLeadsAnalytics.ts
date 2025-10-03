@@ -3,16 +3,14 @@ import { LeadDoc } from "@/types/firestore";
 import {
   DateRangeFilter,
   UTMFilters,
-  LeadsMetrics,
-  TimeSeriesDataPoint,
-  DistributionDataPoint,
-  CampaignPerformance,
 } from "@/types/analytics";
 import { calculateMetrics } from "@/utils/leadsMetrics";
 import {
   transformToTimeSeriesData,
   transformToDistributionData,
   transformToCampaignPerformanceData,
+  transformToHourlyData,
+  transformToDailyData,
 } from "@/utils/leadsChartData";
 
 /**
@@ -82,7 +80,7 @@ export function useLeadsAnalytics(
 
   // Transform data for time-series chart
   const timeSeriesData = useMemo(
-    () => transformToTimeSeriesData(filteredLeads, 'day'),
+    () => transformToTimeSeriesData(filteredLeads),
     [filteredLeads]
   );
 
@@ -98,11 +96,25 @@ export function useLeadsAnalytics(
     [filteredLeads]
   );
 
+  // Transform data for hourly chart
+  const hourlyData = useMemo(
+    () => transformToHourlyData(filteredLeads),
+    [filteredLeads]
+  );
+
+  // Transform data for daily chart
+  const dailyData = useMemo(
+    () => transformToDailyData(filteredLeads),
+    [filteredLeads]
+  );
+
   return {
     metrics,
     timeSeriesData,
     sourceDistribution,
     campaignPerformance,
+    hourlyData,
+    dailyData,
     filteredLeads,
   };
 }

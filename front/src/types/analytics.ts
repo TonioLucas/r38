@@ -5,17 +5,18 @@ import { Timestamp } from "firebase/firestore";
  */
 export interface LeadsMetrics {
   totalLeads: number;
-  totalConverted: number; // leads with download.count24h > 0
-  conversionRate: number; // percentage
   topSource: {
     name: string;
     count: number;
     percentage: number;
   };
   recentLeads24h: number;
+  dailyGrowthRate: number; // percentage change vs. yesterday
+  weeklyGrowthRate: number; // percentage change vs. last week
+  syncedToActiveCampaign: number; // count with activecampaign data
+  syncRate: number; // percentage synced
   periodComparison: {
     leadsChange: number; // percentage change vs. previous period
-    conversionChange: number; // percentage change vs. previous period
   };
 }
 
@@ -25,8 +26,6 @@ export interface LeadsMetrics {
 export interface TimeSeriesDataPoint {
   date: string; // Format: "YYYY-MM-DD" or "MMM DD"
   leads: number;
-  conversions: number;
-  conversionRate?: number; // Optional calculated field
   [key: string]: string | number | undefined; // Index signature for MUI X Charts compatibility
 }
 
@@ -48,8 +47,6 @@ export interface CampaignPerformance {
   source: string;
   medium: string;
   totalLeads: number;
-  conversions: number;
-  conversionRate: number;
   [key: string]: string | number; // Index signature for MUI X Charts compatibility
 }
 
@@ -98,4 +95,23 @@ export interface LeadTableRow {
   downloads24h: number;
   isConverted: boolean;
   recaptchaScore: number;
+}
+
+/**
+ * Hourly lead data for time-based analytics
+ */
+export interface HourlyLeadData {
+  hour: number; // 0-23
+  leads: number;
+  [key: string]: string | number | undefined; // MUI X Charts compatibility
+}
+
+/**
+ * Daily lead data for time-based analytics
+ */
+export interface DailyLeadData {
+  dayOfWeek: string; // "Monday", "Tuesday", etc.
+  dayIndex: number; // 0=Monday, 6=Sunday
+  leads: number;
+  [key: string]: string | number | undefined; // MUI X Charts compatibility
 }

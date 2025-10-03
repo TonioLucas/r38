@@ -369,6 +369,9 @@ scripts/
 # Playwright MCP
 .playwright-mcp/
 
+# CloudFlare Workers
+redirect-worker/
+
 # Large files that shouldn't be in repo
 *.pdf
 *.epub

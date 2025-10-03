@@ -8,18 +8,24 @@ import {
   TimeSeriesDataPoint,
   DistributionDataPoint,
   CampaignPerformance,
+  HourlyLeadData,
+  DailyLeadData,
 } from "@/types/analytics";
 
 export interface LeadsChartsSectionProps {
   timeSeriesData: TimeSeriesDataPoint[];
   sourceDistribution: DistributionDataPoint[];
   campaignPerformance: CampaignPerformance[];
+  hourlyData: HourlyLeadData[];
+  dailyData: DailyLeadData[];
 }
 
 export function LeadsChartsSection({
   timeSeriesData,
   sourceDistribution,
   campaignPerformance,
+  hourlyData,
+  dailyData,
 }: LeadsChartsSectionProps) {
   return (
     <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -39,12 +45,6 @@ export function LeadsChartsSection({
                       label: "Total de Leads",
                       area: true,
                       color: "#1976d2",
-                    },
-                    {
-                      dataKey: "conversions",
-                      label: "Conversões",
-                      area: true,
-                      color: "#4caf50",
                     },
                   ]}
                 />
@@ -101,16 +101,75 @@ export function LeadsChartsSection({
                       label: "Total de Leads",
                       color: "#1976d2",
                     },
-                    {
-                      dataKey: "conversions",
-                      label: "Conversões",
-                      color: "#4caf50",
-                    },
                   ]}
                 />
               </Box>
             ) : (
               <Box sx={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                Nenhum dado disponível para o período selecionado
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Bar Chart - Leads by Hour of Day */}
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardHeader title="Leads por Hora do Dia" />
+          <CardContent>
+            {hourlyData.length > 0 ? (
+              <Box sx={{ width: "100%", height: 300 }}>
+                <BarChart
+                  dataset={hourlyData}
+                  xAxis={[{
+                    scaleType: 'band',
+                    dataKey: 'hour',
+                    valueFormatter: (hour: number, context) =>
+                      context.location === 'tick' ? `${hour}h` : `${hour}:00`,
+                  }]}
+                  series={[{
+                    dataKey: 'leads',
+                    label: 'Leads',
+                    color: '#1976d2',
+                    valueFormatter: (v) => `${v} leads`,
+                  }]}
+                />
+              </Box>
+            ) : (
+              <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                Nenhum dado disponível para o período selecionado
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Bar Chart - Leads by Day of Week */}
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardHeader title="Leads por Dia da Semana" />
+          <CardContent>
+            {dailyData.length > 0 ? (
+              <Box sx={{ width: "100%", height: 300 }}>
+                <BarChart
+                  dataset={dailyData}
+                  xAxis={[{
+                    scaleType: 'band',
+                    dataKey: 'dayOfWeek',
+                    valueFormatter: (day: string, context) =>
+                      context.location === 'tick' ? day.slice(0, 3) : day,
+                  }]}
+                  series={[{
+                    dataKey: 'leads',
+                    label: 'Leads',
+                    color: '#4caf50',
+                    valueFormatter: (v) => `${v} leads`,
+                  }]}
+                />
+              </Box>
+            ) : (
+              <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 Nenhum dado disponível para o período selecionado
               </Box>
             )}

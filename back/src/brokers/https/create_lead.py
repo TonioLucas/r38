@@ -30,8 +30,8 @@ def get_brazilian_timestamp():
     ingress=options.IngressSetting.ALLOW_ALL,
     timeout_sec=30,
     cors=options.CorsOptions(
-        cors_origins="*",  # Allow all origins temporarily
-        cors_methods=["GET", "POST", "OPTIONS"],
+        cors_origins=["https://renato38.com.br", "https://www.renato38.com.br"],
+        cors_methods=["POST", "OPTIONS"],
     )
 )
 def create_lead(req: https_fn.Request):

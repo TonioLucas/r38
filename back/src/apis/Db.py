@@ -68,7 +68,7 @@ class Db(ABC):
             self._collections = {
                 # Base collection that all projects need
                 "users": self.firestore.collection("users"),
-                
+
                 # Project-specific collections
                 "items": self.firestore.collection("items"),
                 "categories": self.firestore.collection("categories"),
@@ -76,12 +76,18 @@ class Db(ABC):
                 "leads": self.firestore.collection("leads"),
                 "settings": self.firestore.collection("settings"),
                 "pages": self.firestore.collection("pages"),
-                
+                "rate_limits": self.firestore.collection("rate_limits"),
+
                 # Add more collections as needed
                 # "collection_name": self.firestore.collection("collection_name"),
                 # "subcollection": lambda parent_id: self.firestore.collection(f"parent/{parent_id}/subcollection"),
             }
         return self._collections
+
+    @property
+    def client(self):
+        """Get the Firestore client for transactions."""
+        return self.firestore
 
     @classmethod
     def get_instance(cls):

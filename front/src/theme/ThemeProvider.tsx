@@ -14,7 +14,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     () =>
       createTheme({
         palette: {
-          mode: "light",
+          mode: "dark",
           primary: {
             main: "#FF8C00", // Orange
             contrastText: "#FFFFFF",
@@ -24,12 +24,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
             contrastText: "#000000",
           },
           background: {
-            default: "#FFFFFF",
-            paper: "#FFFFFF",
+            default: "#121212",
+            paper: "#1e1e1e",
           },
           text: {
-            primary: "#000000",
-            secondary: "#333333",
+            primary: "#FFFFFF",
+            secondary: "rgba(255, 255, 255, 0.7)",
           },
           common: {
             black: "#000000",

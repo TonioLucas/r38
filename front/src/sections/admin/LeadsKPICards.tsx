@@ -44,30 +44,54 @@ export function LeadsKPICards({ metrics }: LeadsKPICardsProps) {
         </Card>
       </Grid>
 
-      {/* Conversion Rate Card */}
+      {/* Daily Growth Rate Card */}
       <Grid item xs={12} sm={6} md={3}>
         <Card sx={{ height: "100%" }}>
           <CardContent>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Taxa de Conversão
+              Crescimento Diário
             </Typography>
             <Typography variant="h4" component="div">
-              {metrics.conversionRate.toFixed(2)}%
+              {metrics.dailyGrowthRate >= 0 ? '+' : ''}{metrics.dailyGrowthRate.toFixed(1)}%
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-              {metrics.periodComparison.conversionChange >= 0 ? (
+              {metrics.dailyGrowthRate >= 0 ? (
                 <TrendingUpIcon color="success" sx={{ fontSize: 20, mr: 0.5 }} />
               ) : (
                 <TrendingDownIcon color="error" sx={{ fontSize: 20, mr: 0.5 }} />
               )}
               <Typography
                 variant="body2"
-                color={metrics.periodComparison.conversionChange >= 0 ? "success.main" : "error.main"}
+                color={metrics.dailyGrowthRate >= 0 ? "success.main" : "error.main"}
               >
-                {Math.abs(metrics.periodComparison.conversionChange).toFixed(1)}%
+                vs. ontem
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-                vs. período anterior
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Weekly Growth Rate Card */}
+      <Grid item xs={12} sm={6} md={3}>
+        <Card sx={{ height: "100%" }}>
+          <CardContent>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Crescimento Semanal
+            </Typography>
+            <Typography variant="h4" component="div">
+              {metrics.weeklyGrowthRate >= 0 ? '+' : ''}{metrics.weeklyGrowthRate.toFixed(1)}%
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+              {metrics.weeklyGrowthRate >= 0 ? (
+                <TrendingUpIcon color="success" sx={{ fontSize: 20, mr: 0.5 }} />
+              ) : (
+                <TrendingDownIcon color="error" sx={{ fontSize: 20, mr: 0.5 }} />
+              )}
+              <Typography
+                variant="body2"
+                color={metrics.weeklyGrowthRate >= 0 ? "success.main" : "error.main"}
+              >
+                vs. semana passada
               </Typography>
             </Box>
           </CardContent>
