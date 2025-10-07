@@ -28,6 +28,12 @@ service firebase.storage {
       allow write: if isAdmin();
     }
 
+    // Banners folder: public read, admin write
+    match /banners/{allPaths=**} {
+      allow read: if true; // public banners for carousel
+      allow write: if isAdmin();
+    }
+
     // Admin-managed public assets
     match /public/{allPaths=**} {
       allow read: if true; // public
