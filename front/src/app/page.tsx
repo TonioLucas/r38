@@ -454,7 +454,7 @@ export default function Home() {
 
       {/* Banner Carousel Section - Above Lead Form */}
       {settings?.banners && settings.banners.length > 0 && (
-        <Box sx={{ py: 6, backgroundColor: "#F5F5F5" }}>
+        <Box sx={{ pt: 6, pb: 4, backgroundColor: "#F5F5F5" }}>
           <Container maxWidth="lg">
             <BannerCarousel banners={settings.banners} />
           </Container>
@@ -462,7 +462,7 @@ export default function Home() {
       )}
 
       {/* Lead Form Section */}
-      <Box id="lead-form" sx={{ py: 8, backgroundColor: "#F5F5F5" }}>
+      <Box id="lead-form" sx={{ pt: settings?.banners && settings.banners.length > 0 ? 4 : 8, pb: 8, backgroundColor: "#F5F5F5" }}>
         <Container maxWidth="sm">
           <Paper elevation={3} sx={{ p: 4 }}>
             <LeadForm onSubmit={handleLeadSubmit} />

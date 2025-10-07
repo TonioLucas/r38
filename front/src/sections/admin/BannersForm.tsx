@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Box, Button, Grid, Card, CardMedia, CardActions,
-  IconButton, Typography, CircularProgress
+  Box, Button, Grid, Card, CardMedia, CardActions, CardContent,
+  IconButton, Typography, CircularProgress, TextField, Dialog,
+  DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
-import { CloudUpload, Delete, ArrowUpward, ArrowDownward } from '@mui/icons-material';
+import { CloudUpload, Delete, ArrowUpward, ArrowDownward, Link as LinkIcon } from '@mui/icons-material';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db, storage } from '@/lib/firebase';
@@ -16,11 +17,14 @@ interface Banner {
   alt: string;
   storagePath: string;
   order: number;
+  link?: string;
 }
 
 export function BannersForm() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editLink, setEditLink] = useState('');
   const { enqueueSnackbar } = useSnackbar();
 
   // Load existing banners from Firestore
@@ -161,6 +165,24 @@ export function BannersForm() {
     }, { merge: true }); // Use merge to preserve other settings
   };
 
+  // Handle link edit
+  const handleEditLink = (index: number) => {
+    setEditingIndex(index);
+    setEditLink(banners[index].link || '');
+  };
+
+  const handleSaveLink = async () => {
+    if (editingIndex === null) return;
+
+    const updatedBanners = [...banners];
+    updatedBanners[editingIndex].link = editLink.trim() || undefined;
+    setBanners(updatedBanners);
+    await saveBanners(updatedBanners);
+    setEditingIndex(null);
+    setEditLink('');
+    enqueueSnackbar('Link atualizado com sucesso', { variant: 'success' });
+  };
+
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
@@ -208,11 +230,20 @@ export function BannersForm() {
                   alt={banner.alt}
                   sx={{ objectFit: 'cover' }}
                 />
+                {banner.link && (
+                  <CardContent sx={{ py: 1 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <LinkIcon fontSize="small" />
+                      {banner.link}
+                    </Typography>
+                  </CardContent>
+                )}
                 <CardActions>
                   <IconButton
                     size="small"
                     onClick={() => moveBanner(index, 'up')}
                     disabled={index === 0}
+                    title="Mover para cima"
                   >
                     <ArrowUpward />
                   </IconButton>
@@ -220,14 +251,24 @@ export function BannersForm() {
                     size="small"
                     onClick={() => moveBanner(index, 'down')}
                     disabled={index === banners.length - 1}
+                    title="Mover para baixo"
                   >
                     <ArrowDownward />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleEditLink(index)}
+                    title="Editar link"
+                    color={banner.link ? 'primary' : 'default'}
+                  >
+                    <LinkIcon />
                   </IconButton>
                   <Box sx={{ flexGrow: 1 }} />
                   <IconButton
                     size="small"
                     color="error"
                     onClick={() => handleBannerDelete(index)}
+                    title="Deletar banner"
                   >
                     <Delete />
                   </IconButton>
@@ -237,6 +278,29 @@ export function BannersForm() {
           ))}
         </Grid>
       )}
+
+      {/* Link Edit Dialog */}
+      <Dialog open={editingIndex !== null} onClose={() => setEditingIndex(null)}>
+        <DialogTitle>Editar Link do Banner</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="URL do Link (opcional)"
+            type="url"
+            fullWidth
+            variant="outlined"
+            value={editLink}
+            onChange={(e) => setEditLink(e.target.value)}
+            placeholder="https://exemplo.com"
+            helperText="Deixe em branco para remover o link"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditingIndex(null)}>Cancelar</Button>
+          <Button onClick={handleSaveLink} variant="contained">Salvar</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

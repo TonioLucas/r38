@@ -131,6 +131,7 @@ export interface SettingsDoc {
     url: string;
     alt: string;
     order: number;
+    link?: string; // Optional URL to navigate when banner is clicked
   }>;
   ebook: {
     storagePath: string;

@@ -9,6 +9,7 @@ import { ArrowBack, ArrowForward } from '@mui/icons-material';
 interface Banner {
   url: string;
   alt: string;
+  link?: string;
 }
 
 interface BannerCarouselProps {
@@ -65,26 +66,44 @@ export default function BannerCarousel({ banners }: BannerCarouselProps) {
         sx={{ overflow: 'hidden', borderRadius: 2 }}
       >
         <Box sx={{ display: 'flex' }}>
-          {banners.map((banner, index) => (
-            <Box
-              key={index}
-              sx={{
-                flex: '0 0 100%',
-                minWidth: 0,
-                aspectRatio: '3/1',
-              }}
-            >
+          {banners.map((banner, index) => {
+            const BannerContent = (
               <img
                 src={banner.url}
                 alt={banner.alt}
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover'
+                  objectFit: 'cover',
+                  cursor: banner.link ? 'pointer' : 'default'
                 }}
               />
-            </Box>
-          ))}
+            );
+
+            return (
+              <Box
+                key={index}
+                sx={{
+                  flex: '0 0 100%',
+                  minWidth: 0,
+                  aspectRatio: '3/1',
+                }}
+              >
+                {banner.link ? (
+                  <a
+                    href={banner.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'block', width: '100%', height: '100%' }}
+                  >
+                    {BannerContent}
+                  </a>
+                ) : (
+                  BannerContent
+                )}
+              </Box>
+            );
+          })}
         </Box>
       </Box>
 
