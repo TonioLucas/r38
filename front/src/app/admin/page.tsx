@@ -12,8 +12,9 @@ import {
   Alert,
   Button,
 } from "@mui/material";
-import { Settings as SettingsIcon, People as PeopleIcon, ExitToApp as LogoutIcon } from "@mui/icons-material";
+import { Settings as SettingsIcon, People as PeopleIcon, ExitToApp as LogoutIcon, ViewCarousel as BannerIcon } from "@mui/icons-material";
 import { SettingsForm } from "@/sections/admin/SettingsForm";
+import { BannersForm } from "@/sections/admin/BannersForm";
 import LeadsAnalyticsDashboard from "@/sections/admin/LeadsAnalyticsDashboard";
 import { useAuth } from "@/auth/useAuth";
 import { AuthGuard } from "@/components/guards/AuthGuard";
@@ -153,11 +154,18 @@ export default function AdminPage() {
                 aria-controls="admin-tabpanel-0"
               />
               <Tab
-                label="Leads"
-                icon={<PeopleIcon />}
+                label="Banners"
+                icon={<BannerIcon />}
                 iconPosition="start"
                 id="admin-tab-1"
                 aria-controls="admin-tabpanel-1"
+              />
+              <Tab
+                label="Leads"
+                icon={<PeopleIcon />}
+                iconPosition="start"
+                id="admin-tab-2"
+                aria-controls="admin-tabpanel-2"
               />
             </Tabs>
           </Box>
@@ -167,6 +175,10 @@ export default function AdminPage() {
         </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
+            <BannersForm />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={2}>
             <LeadsAnalyticsDashboard />
           </TabPanel>
         </Box>

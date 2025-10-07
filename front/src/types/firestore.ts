@@ -126,6 +126,12 @@ export interface SettingsDoc {
     url: string;
     alt: string;
   }>;
+  banners: Array<{
+    storagePath: string;
+    url: string;
+    alt: string;
+    order: number;
+  }>;
   ebook: {
     storagePath: string;
     fileName: string;

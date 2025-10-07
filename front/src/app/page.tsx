@@ -7,24 +7,20 @@ import {
   Button,
   Stack,
   Paper,
-  useTheme,
-  useMediaQuery,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { SettingsDoc, LeadDoc } from "@/types/firestore";
+import { SettingsDoc } from "@/types/firestore";
 import { LeadForm, LeadPayload } from "@/components/forms/LeadForm";
 import { useRouter } from "next/navigation";
 import { SocialMediaIcons } from "@/components/common/SocialMediaIcons";
+import BannerCarousel from "@/components/carousel/BannerCarousel";
 import Image from "next/image";
 
 export default function Home() {
-  const theme = useTheme();
   const router = useRouter();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [settings, setSettings] = useState<SettingsDoc | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadSettings();
@@ -40,15 +36,11 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Error loading settings:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleLeadSubmit = async (data: LeadPayload) => {
     try {
-      // Get UTM parameters from URL
-      const urlParams = new URLSearchParams(window.location.search);
       // Call the HTTP endpoint directly
       const functionsUrl = 'https://us-central1-r38tao-5bdf1.cloudfunctions.net/create_lead';
 
@@ -459,6 +451,15 @@ export default function Home() {
           </Stack>
         </Container>
       </Box>
+
+      {/* Banner Carousel Section - Above Lead Form */}
+      {settings?.banners && settings.banners.length > 0 && (
+        <Box sx={{ py: 6, backgroundColor: "#F5F5F5" }}>
+          <Container maxWidth="lg">
+            <BannerCarousel banners={settings.banners} />
+          </Container>
+        </Box>
+      )}
 
       {/* Lead Form Section */}
       <Box id="lead-form" sx={{ py: 8, backgroundColor: "#F5F5F5" }}>

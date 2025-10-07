@@ -39,13 +39,21 @@ if (typeof window !== "undefined" && firebaseApp) {
 }
 
 // Development environment emulators (optional)
-if (process.env.NODE_ENV === "development") {
-  // Use emulators in development
+// Only connect to emulators if explicitly enabled via environment variable
+const useEmulators = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === "true";
+
+if (useEmulators && process.env.NODE_ENV === "development") {
   console.log(
-    "Using emulators in development mode, make sure to start them in back folder."
+    "🔧 Using Firebase emulators (local development mode)"
   );
+  console.log("   - Functions: localhost:5001");
+  console.log("   - Auth: localhost:9099");
+  console.log("   - Firestore: localhost:8080");
+  console.log("   - Storage: localhost:9199");
   connectFunctionsEmulator(functions, "localhost", 5001);
   connectAuthEmulator(auth, "http://localhost:9099/");
   connectFirestoreEmulator(db, "localhost", 8080);
   connectStorageEmulator(storage, "localhost", 9199);
+} else if (process.env.NODE_ENV === "development") {
+  console.log("🔥 Connected to PRODUCTION Firebase (local dev with production DB)");
 }
