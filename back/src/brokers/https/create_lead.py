@@ -13,6 +13,8 @@ from src.apis.Db import Db
 from src.util.logger import get_logger
 from src.util.rate_limiter import rate_limiter
 from src.services.activecampaign_service import ActiveCampaignService
+from src.exceptions.CustomError import ExternalServiceError
+from src.util.retry_decorators import retry_firestore_operation
 
 logger = get_logger(__name__)
 
@@ -184,11 +186,11 @@ def create_lead(req: https_fn.Request):
             lead_id = lead_doc_ref.id
             logger.info(f"Created new lead: {lead_id} for email: {email}")
 
-        # ActiveCampaign integration - sync lead to marketing automation
+        # ZONE 1: ActiveCampaign sync (fail fast on error)
+        # Generate secure signed download URL (time-limited, no user interaction needed)
+        # This URL expires after EBOOK_DOWNLOAD_LINK_TTL_MINUTES (default: 10 minutes)
+        # But can be used multiple times within rate limits (3 downloads per 24h)
         try:
-            # Generate secure signed download URL (time-limited, no user interaction needed)
-            # This URL expires after EBOOK_DOWNLOAD_LINK_TTL_MINUTES (default: 10 minutes)
-            # But can be used multiple times within rate limits (3 downloads per 24h)
             download_url = _generate_secure_download_url(db, email)
 
             if not download_url:
@@ -196,6 +198,7 @@ def create_lead(req: https_fn.Request):
                 download_url = f"https://renato38.com.br/obrigado?email={email}"
                 logger.warning(f"Failed to generate signed URL, using fallback for {email}")
 
+            logger.info(f"Starting ActiveCampaign sync for {email}")
             ac_service = ActiveCampaignService()
             ac_result = ac_service.process_lead(
                 email=email,
@@ -203,8 +206,37 @@ def create_lead(req: https_fn.Request):
                 phone=phone or "",
                 download_link=download_url
             )
+            logger.info(f"AC sync successful: contact_id={ac_result['contact_id']}, email={email}")
 
-            # Store ActiveCampaign data in Firestore
+        except ExternalServiceError as e:
+            # AC service failed (timeout, HTTP error, etc.)
+            logger.error(
+                f"ActiveCampaign sync failed for {email}: {e.message}",
+                extra={
+                    "email": email,
+                    "service": e.details.get("service"),
+                    "status_code": e.details.get("status_code"),
+                    "error_code": e.code
+                }
+            )
+            # FAIL REQUEST - don't create lead without AC sync
+            return (jsonify({
+                "error": "Marketing automation sync failed. Please try again.",
+                "code": "external_service_error"
+            }), 500)
+
+        except Exception as e:
+            # Unexpected error during AC sync
+            logger.error(f"Unexpected error during AC sync for {email}: {e}", exc_info=True)
+            return (jsonify({
+                "error": "Internal server error",
+                "code": "internal_error"
+            }), 500)
+
+        # ZONE 2: Firestore update with retry
+        @retry_firestore_operation
+        def update_lead_with_ac_data():
+            """Update lead document with AC metadata. Will retry on transient Firestore errors."""
             lead_doc_ref.update({
                 "activecampaign": {
                     "contactId": ac_result["contact_id"],
@@ -213,14 +245,30 @@ def create_lead(req: https_fn.Request):
                     "syncedAt": db.server_timestamp
                 }
             })
+            return ac_result["contact_id"]
 
-            logger.info(f"ActiveCampaign sync successful: {ac_result}")
+        try:
+            logger.info(f"Updating Firestore with AC data for {email}")
+            contact_id = update_lead_with_ac_data()
+            logger.info(f"Lead {lead_id} updated with AC contact_id={contact_id}")
 
         except Exception as e:
-            # Log error but don't fail lead creation
-            # Lead is already saved in Firestore
-            logger.error(f"ActiveCampaign sync failed for {email}: {e}", exc_info=True)
-            # Continue execution - this is non-critical
+            # All retries exhausted or permanent error
+            logger.error(
+                f"Failed to update Firestore with AC data after retries: {email}",
+                extra={
+                    "email": email,
+                    "lead_id": lead_id,
+                    "contact_id": ac_result.get("contact_id"),
+                    "error": str(e)
+                },
+                exc_info=True
+            )
+            # FAIL REQUEST - lead exists but no AC linkage (inconsistent state)
+            return (jsonify({
+                "error": "Failed to complete lead registration. Please try again.",
+                "code": "database_error"
+            }), 500)
 
         logger.info(f"Lead processed successfully: {lead_id}")
 
