@@ -10,7 +10,7 @@ logger = get_logger(__name__)
 
 # Download configuration
 MAX_DOWNLOADS_PER_24H = 3
-SIGNED_URL_TTL_MINUTES = 10  # 10 minutes as per PRD recommendation
+SIGNED_URL_TTL_MINUTES = 10080  # 7 days (7 * 24 * 60 minutes)
 
 
 @https_fn.on_call(

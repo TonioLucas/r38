@@ -417,8 +417,8 @@ def _generate_secure_download_url(db: Db, email: str) -> Optional[str]:
         if storage_path.startswith("/"):
             storage_path = storage_path[1:]
 
-        # Get TTL from environment or use default
-        ttl_minutes = int(os.environ.get("EBOOK_DOWNLOAD_LINK_TTL_MINUTES", "10"))
+        # Get TTL from environment or use default (7 days)
+        ttl_minutes = int(os.environ.get("EBOOK_DOWNLOAD_LINK_TTL_MINUTES", "10080"))
 
         # Generate signed URL
         bucket = storage.bucket()
