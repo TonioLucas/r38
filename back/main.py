@@ -45,6 +45,12 @@ from src.brokers.https.webhook_handler import webhook_handler
 from src.brokers.https.create_lead import create_lead
 from src.brokers.https.get_download_link import get_download_link
 
+# Import payment functions
+from src.brokers.https.create_checkout_session import create_checkout_session
+from src.brokers.https.create_btcpay_invoice import create_btcpay_invoice
+from src.brokers.https.process_payment_webhook import process_payment_webhook
+from src.brokers.https.get_subscription_status import get_subscription_status
+
 # Import triggered functions
 from src.brokers.triggered.on_item_created import on_item_created
 from src.brokers.triggered.on_item_updated import on_item_updated
@@ -56,13 +62,19 @@ __all__ = [
     'example_callable',
     'create_item_callable',
     'get_item_callable',
-    
+
     # HTTPS functions
     'health_check',
     'webhook_handler',
     'create_lead',
     'get_download_link',
-    
+
+    # Payment functions
+    'create_checkout_session',
+    'create_btcpay_invoice',
+    'process_payment_webhook',
+    'get_subscription_status',
+
     # Triggered functions
     'on_item_created',
     'on_item_updated',

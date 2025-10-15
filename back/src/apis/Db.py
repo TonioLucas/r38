@@ -78,9 +78,16 @@ class Db(ABC):
                 "pages": self.firestore.collection("pages"),
                 "rate_limits": self.firestore.collection("rate_limits"),
 
-                # Add more collections as needed
-                # "collection_name": self.firestore.collection("collection_name"),
-                # "subcollection": lambda parent_id: self.firestore.collection(f"parent/{parent_id}/subcollection"),
+                # Commercialization collections
+                "products": self.firestore.collection("products"),
+                "product_prices": self.firestore.collection("product_prices"),
+                "customers": self.firestore.collection("customers"),
+                "subscriptions": self.firestore.collection("subscriptions"),
+                "payments": self.firestore.collection("payments"),
+                "affiliates": self.firestore.collection("affiliates"),
+                "affiliate_transactions": self.firestore.collection("affiliate_transactions"),
+                "webhook_events": self.firestore.collection("webhook_events"),
+                "manual_verifications": self.firestore.collection("manual_verifications"),
             }
         return self._collections
 
