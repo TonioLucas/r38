@@ -75,9 +75,9 @@ function CheckoutContent() {
         const affiliateCode = getAffiliateCode();
         setAffiliateCode(affiliateCode);
 
-        // Check for manual override parameter
+        // Check for manual override parameter (only once when component mounts)
         const devOverrideToken = searchParams.get('dev_override');
-        if (devOverrideToken && user?.email) {
+        if (devOverrideToken && user?.email && !checkoutData.manualOverride) {
           const isValid = await validateOverrideToken(devOverrideToken, user.email);
           if (isValid) {
             setManualOverride(devOverrideToken, user.email);
@@ -99,7 +99,8 @@ function CheckoutContent() {
     };
 
     loadCheckoutData();
-  }, [searchParams, setProductAndPrice, setAffiliateCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const handleUserInfoNext = (data: { email: string; name: string; phone?: string }) => {
     setUserInfo(data.email, data.name, data.phone);

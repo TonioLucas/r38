@@ -82,7 +82,7 @@ class StripeService:
             # Create Checkout Session
             session = stripe.checkout.Session.create(
                 mode='payment',  # One-time payment, not recurring
-                payment_method_types=['card', 'pix'],  # Enable both card and PIX payments
+                payment_method_types=['card'],  # Only card payments (PIX not activated in Stripe)
                 customer_email=customer.doc.email,  # Prefill email
                 line_items=[{
                     'price_data': {
@@ -113,8 +113,7 @@ class StripeService:
                 logger.error(f"Stripe API error creating checkout session: {stripe_error}")
                 raise ExternalServiceError(
                     service="Stripe",
-                    message=f"Failed to create checkout session: {str(stripe_error)}",
-                    details={"subscription_id": subscription_id}
+                    message=f"Failed to create checkout session: {str(stripe_error)}"
                 )
             # Re-raise non-Stripe exceptions
             raise
@@ -122,8 +121,7 @@ class StripeService:
             logger.error(f"Unexpected error creating checkout session: {e}", exc_info=True)
             raise ExternalServiceError(
                 service="Stripe",
-                message=f"Unexpected error: {str(e)}",
-                details={"subscription_id": subscription_id}
+                message=f"Unexpected error: {str(e)}"
             )
 
     def verify_webhook_signature(self, payload: str, sig_header: str) -> dict:
