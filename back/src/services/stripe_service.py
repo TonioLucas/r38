@@ -79,11 +79,47 @@ class StripeService:
             if affiliate_id:
                 metadata['affiliate_id'] = affiliate_id
 
+            # Create or retrieve Stripe Customer for phone number prefilling
+            stripe_customer_id = customer.doc.stripe_customer_id
+
+            if not stripe_customer_id:
+                # Create new Stripe Customer
+                stripe_customer_params = {
+                    'email': customer.doc.email,
+                    'name': customer.doc.name,
+                    'metadata': {'firestore_customer_id': customer_id}
+                }
+
+                # Add phone if available
+                if customer.doc.phone:
+                    stripe_customer_params['phone'] = customer.doc.phone
+
+                stripe_customer = stripe.Customer.create(**stripe_customer_params)
+                stripe_customer_id = stripe_customer.id
+
+                # Save Stripe Customer ID to Firestore
+                customer.collection_ref.document(customer_id).update({
+                    'stripe_customer_id': stripe_customer_id
+                })
+                logger.info(f"Created Stripe Customer {stripe_customer_id} for customer {customer_id}")
+            else:
+                # Update existing Stripe Customer with latest info
+                update_params = {
+                    'email': customer.doc.email,
+                    'name': customer.doc.name,
+                }
+
+                if customer.doc.phone:
+                    update_params['phone'] = customer.doc.phone
+
+                stripe.Customer.modify(stripe_customer_id, **update_params)
+                logger.info(f"Updated Stripe Customer {stripe_customer_id} for customer {customer_id}")
+
             # Create Checkout Session
             session = stripe.checkout.Session.create(
                 mode='payment',  # One-time payment, not recurring
                 payment_method_types=['card'],  # Only card payments (PIX not activated in Stripe)
-                customer_email=customer.doc.email,  # Prefill email
+                customer=stripe_customer_id,  # Use existing customer for prefilling
                 line_items=[{
                     'price_data': {
                         'currency': price.doc.currency.lower(),
