@@ -137,6 +137,7 @@ class StripeService:
                 expires_at=int(time.time()) + (30 * 60),  # Expires in 30 minutes
                 locale='pt-BR',  # Brazilian Portuguese
                 phone_number_collection={'enabled': True},  # Collect phone number
+                billing_address_collection='required',  # Required for Brazilian NFe invoice compliance
             )
 
             logger.info(f"Created Stripe Checkout Session: {session.id} for subscription {subscription_id}")
