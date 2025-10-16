@@ -9,24 +9,29 @@ import { ProductDoc, ProductPriceDoc, COLLECTIONS } from '@/types/firestore';
 import { CheckoutStepper } from '@/components/checkout/CheckoutStepper';
 import { ProductStep } from '@/components/checkout/ProductStep';
 import { UserInfoStep } from '@/components/checkout/UserInfoStep';
-import { PaymentMethodStep } from '@/components/checkout/PaymentMethodStep';
 import { StripePayment } from '@/components/checkout/StripePayment';
 import { BTCPayPayment } from '@/components/checkout/BTCPayPayment';
 import { useCheckout } from '@/hooks/useCheckout';
 import { getAffiliateCode } from '@/lib/utils/affiliate';
 import { PaymentRequest } from '@/types/payment';
+import { validateOverrideToken } from '@/lib/manualPurchaseToken';
+import { useAuth } from '@/auth/useAuth';
+import { useSnackbar } from 'notistack';
 
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { enqueueSnackbar } = useSnackbar();
   const {
     activeStep,
     checkoutData,
     setProductAndPrice,
     setUserInfo,
     setAffiliateCode,
+    setManualOverride,
     nextStep,
     prevStep,
     isComplete,
@@ -70,6 +75,21 @@ function CheckoutContent() {
         const affiliateCode = getAffiliateCode();
         setAffiliateCode(affiliateCode);
 
+        // Check for manual override parameter
+        const devOverrideToken = searchParams.get('dev_override');
+        if (devOverrideToken && user?.email) {
+          const isValid = await validateOverrideToken(devOverrideToken, user.email);
+          if (isValid) {
+            setManualOverride(devOverrideToken, user.email);
+            enqueueSnackbar('Override manual ativado - Preço: R$5.00', {
+              variant: 'info',
+              autoHideDuration: 5000,
+            });
+          } else {
+            console.warn('Invalid manual override token or unauthorized user');
+          }
+        }
+
         setLoading(false);
       } catch (err) {
         console.error('Error loading checkout data:', err);
@@ -98,6 +118,7 @@ function CheckoutContent() {
       name: checkoutData.name!,
       phone: checkoutData.phone,
       affiliateCode: checkoutData.affiliateCode,
+      manualOverrideToken: checkoutData.manualOverride?.token,
     };
   };
 
@@ -155,15 +176,7 @@ function CheckoutContent() {
             />
           )}
 
-          {activeStep === 2 && (
-            <PaymentMethodStep
-              selectedPrice={selectedPrice}
-              onNext={nextStep}
-              onBack={prevStep}
-            />
-          )}
-
-          {activeStep === 3 && isComplete() && (
+          {activeStep === 2 && isComplete() && (
             <>
               {(selectedPrice.payment_method === 'credit_card' || selectedPrice.payment_method === 'pix') && (
                 <StripePayment

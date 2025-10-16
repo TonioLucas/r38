@@ -1,5 +1,11 @@
 import { ProductDoc, ProductPriceDoc, PaymentMethod } from './firestore';
 
+export interface ManualOverrideData {
+  enabled: boolean;
+  token: string;
+  adminEmail: string;
+}
+
 export interface CheckoutData {
   product: ProductDoc;
   selectedPrice: ProductPriceDoc;
@@ -7,6 +13,7 @@ export interface CheckoutData {
   name: string;
   phone?: string;
   affiliateCode?: string;
+  manualOverride?: ManualOverrideData;
 }
 
 export interface CheckoutStep {
@@ -17,6 +24,5 @@ export interface CheckoutStep {
 export const CHECKOUT_STEPS: CheckoutStep[] = [
   { label: 'Produto', description: 'Confirme sua seleção' },
   { label: 'Dados', description: 'Informações pessoais' },
-  { label: 'Pagamento', description: 'Método de pagamento' },
   { label: 'Finalizar', description: 'Complete o pagamento' },
 ];

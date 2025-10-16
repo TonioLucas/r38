@@ -141,6 +141,64 @@ def create_checkout_session(req: Request):
             logger.error(f"Error fetching product: {e}")
             return (jsonify({'error': 'Product not found'}), 404)
 
+        # Check for manual purchase override
+        manual_override_token = data.get('manualOverrideToken')
+        manual_purchase_metadata = None
+
+        if manual_override_token:
+            from src.apis.Db import Db
+            db_instance = Db.get_instance()
+            settings_ref = db_instance.collections['settings'].document('main')
+            settings_doc = settings_ref.get()
+
+            if settings_doc.exists:
+                settings = settings_doc.to_dict()
+                manual_settings = settings.get('manual_purchase')
+
+                # Validate override conditions
+                admin_emails = [
+                    'admin@renato38.com.br',
+                    'antoniolucasdeor@gmail.com',
+                    'bitcoinblackpill@gmail.com',
+                    'renato@trezoitao.com.br'
+                ]
+
+                if (manual_settings and
+                    manual_settings.get('enabled') and
+                    manual_settings.get('override_token') == manual_override_token and
+                    email.lower() in [e.lower() for e in admin_emails]):
+
+                    # OVERRIDE PRICE
+                    original_amount = price.doc.amount
+                    override_amount = manual_settings.get('override_price_centavos', 500)
+
+                    # Store metadata for audit
+                    manual_purchase_metadata = {
+                        'is_manual_purchase': True,
+                        'override_token_used': manual_override_token,
+                        'admin_email': email,
+                        'original_price_id': price.doc.id,
+                        'original_amount': original_amount,
+                        'override_amount': override_amount,
+                        'created_at': db_instance.timestamp_now()
+                    }
+
+                    # Override price for Stripe
+                    price.doc.amount = override_amount
+
+                    # Log admin action
+                    db_instance.collections['admin_actions'].add({
+                        'action': 'manual_purchase_override',
+                        'admin_email': email,
+                        'product_id': product.doc.id,
+                        'price_id': price.doc.id,
+                        'original_amount': original_amount,
+                        'override_amount': override_amount,
+                        'timestamp': db_instance.timestamp_now()
+                    })
+
+                    logger.info(f"Manual purchase override applied: {email} | {original_amount} → {override_amount}")
+
         # Create subscription if using new format
         if 'priceId' in data:
             from src.models.firestore_types import SubscriptionStatus, PaymentMethod, PaymentProvider, EntitlementsData, AffiliateData
@@ -187,6 +245,10 @@ def create_checkout_session(req: Request):
                     "affiliate_code": affiliate_code,
                     "recorded_at": db.timestamp_now()
                 }
+
+            # Add manual purchase metadata if override was applied
+            if manual_purchase_metadata:
+                subscription_data["manual_purchase_metadata"] = manual_purchase_metadata
 
             _, subscription_ref = db.collections["subscriptions"].add(subscription_data)
             subscription_id = subscription_ref.id

@@ -118,3 +118,26 @@ export async function extendEntitlement(
   const result = await callable({ subscriptionId, entitlementType, days });
   return result.data;
 }
+
+/**
+ * Update manual purchase override settings
+ *
+ * @param settings - Partial settings to update
+ * @returns Promise with success status
+ */
+export async function updateManualPurchaseSettings(settings: {
+  enabled?: boolean;
+  override_price_reais?: number;
+  rotate_token?: boolean;
+  updated_by: string;
+}): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const callable = httpsCallable<
+    typeof settings,
+    { success: boolean; message: string }
+  >(functions, "update_manual_purchase_settings");
+  const result = await callable(settings);
+  return result.data;
+}

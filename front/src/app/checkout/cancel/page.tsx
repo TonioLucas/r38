@@ -35,18 +35,10 @@ export default function CheckoutCancelPage() {
               <Button
                 variant="contained"
                 size="large"
-                href="/products"
-                sx={{ px: 4 }}
-              >
-                Voltar para Produtos
-              </Button>
-              <Button
-                variant="outlined"
-                size="large"
                 href="/"
                 sx={{ px: 4 }}
               >
-                Ir para Início
+                Voltar para Início
               </Button>
             </Stack>
           </Stack>

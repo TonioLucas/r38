@@ -115,6 +115,18 @@ export interface LeadDoc extends BaseDocument {
 }
 
 // Settings document (singleton for app settings)
+// Manual purchase override settings
+export interface ManualPurchaseSettings {
+  enabled: boolean;
+  override_token: string;
+  override_price_centavos: number;
+  override_price_reais: number;
+  allowed_admin_emails: string[];
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  updated_by: string;
+}
+
 export interface SettingsDoc {
   hero: {
     headline: string;
@@ -138,6 +150,7 @@ export interface SettingsDoc {
     fileName: string;
     sizeBytes: number;
   };
+  manual_purchase?: ManualPurchaseSettings;
   updatedAt: Timestamp;
 }
 
@@ -261,6 +274,16 @@ export interface ManualVerificationData {
   notes: string | null;
 }
 
+export interface ManualPurchaseMetadata {
+  is_manual_purchase: boolean;
+  override_token_used: string;
+  admin_email: string;
+  original_price_id: string;
+  original_amount: number;
+  override_amount: number;
+  created_at: Date;
+}
+
 export interface SubscriptionDoc extends BaseDocument {
   customer_id: string;
   product_id: string;
@@ -276,6 +299,7 @@ export interface SubscriptionDoc extends BaseDocument {
   access_available_from: Date | null;
   affiliate_data: AffiliateData | null;
   manual_verification: ManualVerificationData | null;
+  manual_purchase_metadata?: ManualPurchaseMetadata;
 }
 
 // Payment interfaces

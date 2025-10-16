@@ -146,10 +146,10 @@ function CheckoutSuccessContent() {
               <Button
                 variant="contained"
                 size="large"
-                href="/products"
+                href="/"
                 sx={{ px: 4 }}
               >
-                Ver Mais Produtos
+                Voltar para Início
               </Button>
               <Button
                 variant="outlined"

@@ -243,6 +243,29 @@ class ManualVerificationData(BaseModel):
     notes: Optional[str] = None
 
 
+class ManualPurchaseSettings(BaseModel):
+    """Settings for admin manual purchase override feature."""
+    enabled: bool = False
+    override_token: str
+    override_price_centavos: int = Field(default=500, ge=0)  # R$5.00
+    override_price_reais: float = Field(default=5.00, ge=0)
+    allowed_admin_emails: List[str]
+    created_at: datetime
+    updated_at: datetime
+    updated_by: str
+
+
+class ManualPurchaseMetadata(BaseModel):
+    """Metadata for manually overridden purchases."""
+    is_manual_purchase: bool = True
+    override_token_used: str
+    admin_email: str
+    original_price_id: str
+    original_amount: int  # Original price in centavos
+    override_amount: int  # Override price in centavos (500)
+    created_at: datetime
+
+
 class SubscriptionDoc(BaseDoc):
     """Purchase record with entitlements."""
     id: str
@@ -260,6 +283,7 @@ class SubscriptionDoc(BaseDoc):
     access_available_from: Optional[datetime] = None  # For pre-sales
     affiliate_data: Optional[AffiliateData] = None
     manual_verification: Optional[ManualVerificationData] = None
+    manual_purchase_metadata: Optional[ManualPurchaseMetadata] = None
 
 
 # Payment models

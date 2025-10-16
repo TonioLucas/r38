@@ -114,7 +114,7 @@ def create_btcpay_invoice(req: Request):
                 if not price.doc:
                     logger.error(f"Price not found: {price_id}")
                     return (jsonify({'error': 'Price not found'}), 404)
-                amount = price.doc.amount
+                amount = price.doc.display_amount  # Use display_amount (reais) for BTCPay, not amount (centavos)
                 currency = price.doc.currency
             except Exception as e:
                 logger.error(f"Error fetching price: {e}")
@@ -130,8 +130,68 @@ def create_btcpay_invoice(req: Request):
                 logger.error(f"Error fetching product: {e}")
                 return (jsonify({'error': 'Product not found'}), 404)
 
-            # Create customer and subscription
+            # Check for manual purchase override
+            manual_override_token = data.get('manualOverrideToken')
+            manual_purchase_metadata = None
+
             db = Db.get_instance()
+
+            if manual_override_token:
+                settings_ref = db.collections['settings'].document('main')
+                settings_doc = settings_ref.get()
+
+                if settings_doc.exists:
+                    settings = settings_doc.to_dict()
+                    manual_settings = settings.get('manual_purchase')
+
+                    # Validate override conditions
+                    admin_emails = [
+                        'admin@renato38.com.br',
+                        'antoniolucasdeor@gmail.com',
+                        'bitcoinblackpill@gmail.com',
+                        'renato@trezoitao.com.br'
+                    ]
+
+                    if (manual_settings and
+                        manual_settings.get('enabled') and
+                        manual_settings.get('override_token') == manual_override_token and
+                        email.lower() in [e.lower() for e in admin_emails]):
+
+                        # OVERRIDE PRICE
+                        original_amount_centavos = price.doc.amount
+                        original_amount_reais = price.doc.display_amount
+                        override_amount_reais = manual_settings.get('override_price_reais', 5.00)
+                        override_amount_centavos = manual_settings.get('override_price_centavos', 500)
+
+                        # Store metadata for audit
+                        manual_purchase_metadata = {
+                            'is_manual_purchase': True,
+                            'override_token_used': manual_override_token,
+                            'admin_email': email,
+                            'original_price_id': price.doc.id,
+                            'original_amount': original_amount_centavos,
+                            'override_amount': override_amount_centavos,
+                            'created_at': db.timestamp_now()
+                        }
+
+                        # Override price for BTCPay (uses reais, not centavos)
+                        amount = override_amount_reais
+                        price.doc.amount = override_amount_centavos  # Update centavos for subscription
+
+                        # Log admin action
+                        db.collections['admin_actions'].add({
+                            'action': 'manual_purchase_override_btcpay',
+                            'admin_email': email,
+                            'product_id': product.doc.id,
+                            'price_id': price.doc.id,
+                            'original_amount': original_amount_centavos,
+                            'override_amount': override_amount_centavos,
+                            'timestamp': db.timestamp_now()
+                        })
+
+                        logger.info(f"Manual purchase override applied (BTCPay): {email} | {original_amount_reais} → {override_amount_reais}")
+
+            # Create customer and subscription
 
             # Find or create customer
             customers_ref = db.collections["customers"]
@@ -172,6 +232,10 @@ def create_btcpay_invoice(req: Request):
                     "affiliate_code": affiliate_code,
                     "recorded_at": db.timestamp_now()
                 }
+
+            # Add manual purchase metadata if override was applied
+            if manual_purchase_metadata:
+                subscription_data["manual_purchase_metadata"] = manual_purchase_metadata
 
             _, subscription_ref = db.collections["subscriptions"].add(subscription_data)
             subscription_id = subscription_ref.id

@@ -25,6 +25,7 @@ import {
 } from "@mui/icons-material";
 import { SettingsForm } from "@/sections/admin/SettingsForm";
 import { BannersForm } from "@/sections/admin/BannersForm";
+import ManualPurchaseSettings from "@/sections/admin/ManualPurchaseSettings";
 import LeadsAnalyticsDashboard from "@/sections/admin/LeadsAnalyticsDashboard";
 import { CustomerTable } from "@/sections/admin/commercialization/CustomerTable";
 import { ManualVerificationTable } from "@/sections/admin/commercialization/ManualVerificationTable";
@@ -228,6 +229,9 @@ export default function AdminPage() {
 
           <TabPanel value={tabValue} index={0}>
             <SettingsForm />
+            <Box sx={{ mt: 3 }}>
+              <ManualPurchaseSettings />
+            </Box>
           </TabPanel>
 
           <TabPanel value={tabValue} index={1}>

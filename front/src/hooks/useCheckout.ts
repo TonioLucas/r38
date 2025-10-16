@@ -46,6 +46,20 @@ export function useCheckout() {
   };
 
   /**
+   * Sets manual override data for admin testing
+   */
+  const setManualOverride = (token: string, adminEmail: string) => {
+    setCheckoutData((prev) => ({
+      ...prev,
+      manualOverride: {
+        enabled: true,
+        token,
+        adminEmail,
+      },
+    }));
+  };
+
+  /**
    * Advances to next step
    */
   const nextStep = () => {
@@ -85,6 +99,7 @@ export function useCheckout() {
     setProductAndPrice,
     setUserInfo,
     setAffiliateCode,
+    setManualOverride,
     nextStep,
     prevStep,
     reset,

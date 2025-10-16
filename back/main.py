@@ -60,6 +60,7 @@ from src.brokers.https.admin.reject_verification import reject_manual_verificati
 from src.brokers.https.admin.regenerate_password import regenerate_customer_password
 from src.brokers.https.admin.regenerate_magic_link import regenerate_magic_login_url
 from src.brokers.https.admin.extend_entitlement import extend_subscription_entitlement
+from src.brokers.https.admin.update_manual_purchase_settings import update_manual_purchase_settings
 
 # Import triggered functions
 from src.brokers.triggered.on_item_created import on_item_created

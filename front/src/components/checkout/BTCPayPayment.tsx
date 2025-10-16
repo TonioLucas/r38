@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Button,
@@ -9,14 +9,11 @@ import {
   Stack,
   CircularProgress,
   Alert,
-  Chip,
 } from '@mui/material';
-import { CurrencyBitcoin, CheckCircle, Error as ErrorIcon } from '@mui/icons-material';
+import { CurrencyBitcoin } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
 import { createBTCPayInvoice } from '@/lib/api/payments';
-import { useTransactionStatus } from '@/hooks/useTransactionStatus';
 import { PaymentRequest } from '@/types/payment';
-import { useRouter } from 'next/navigation';
 
 interface BTCPayPaymentProps {
   paymentRequest: PaymentRequest;
@@ -25,50 +22,21 @@ interface BTCPayPaymentProps {
 
 export function BTCPayPayment({ paymentRequest, onBack }: BTCPayPaymentProps) {
   const [loading, setLoading] = useState(false);
-  const [invoiceId, setInvoiceId] = useState<string | null>(null);
-  const [checkoutLink, setCheckoutLink] = useState<string | null>(null);
   const { enqueueSnackbar } = useSnackbar();
-  const { status, loading: statusLoading } = useTransactionStatus(invoiceId);
-  const router = useRouter();
 
-  const handleCreateInvoice = async () => {
+  const handlePayment = async () => {
     try {
       setLoading(true);
 
       // Create BTCPay invoice
       const invoice = await createBTCPayInvoice(paymentRequest);
 
-      setInvoiceId(invoice.invoiceId);
-      setCheckoutLink(invoice.checkoutLink);
-
-      enqueueSnackbar('Invoice criada com sucesso!', { variant: 'success' });
+      // Redirect to BTCPay Checkout (like Stripe)
+      window.location.href = invoice.checkoutLink;
     } catch (error) {
       console.error('Error creating BTCPay invoice:', error);
       enqueueSnackbar('Erro ao criar invoice. Tente novamente.', { variant: 'error' });
-    } finally {
       setLoading(false);
-    }
-  };
-
-  // Redirect on successful payment
-  useEffect(() => {
-    if (status?.status === 'confirmed') {
-      router.push('/checkout/success?transaction=' + invoiceId);
-    }
-  }, [status, invoiceId, router]);
-
-  const getStatusChip = () => {
-    if (!status) return null;
-
-    switch (status.status) {
-      case 'confirmed':
-        return <Chip icon={<CheckCircle />} label="Pagamento Confirmado" color="success" />;
-      case 'failed':
-        return <Chip icon={<ErrorIcon />} label="Pagamento Falhou" color="error" />;
-      case 'pending':
-        return <Chip label="Aguardando Pagamento" color="warning" />;
-      default:
-        return <Chip label={status.status} />;
     }
   };
 
@@ -82,75 +50,38 @@ export function BTCPayPayment({ paymentRequest, onBack }: BTCPayPaymentProps) {
             Pagamento com Bitcoin
           </Typography>
 
-          {!invoiceId ? (
-            <>
-              <Alert severity="info" sx={{ width: '100%' }}>
-                Clique no botão abaixo para gerar um endereço Bitcoin para pagamento.
-              </Alert>
+          <Alert severity="info" sx={{ width: '100%' }}>
+            Você será redirecionado para a página segura de pagamento BTCPay para completar sua compra.
+          </Alert>
 
-              <Typography variant="body2" color="text.secondary">
-                Você receberá um QR code e um endereço Bitcoin para completar o pagamento.
-              </Typography>
-            </>
-          ) : (
-            <>
-              <Alert severity="success" sx={{ width: '100%' }}>
-                Invoice criada com sucesso! Clique no botão abaixo para ver detalhes e completar o pagamento.
-              </Alert>
-
-              {status && getStatusChip()}
-
-              {statusLoading && (
-                <Box sx={{ py: 2 }}>
-                  <CircularProgress size={30} />
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Verificando status do pagamento...
-                  </Typography>
-                </Box>
-              )}
-
-              <Button
-                variant="outlined"
-                href={checkoutLink || '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                size="large"
-                sx={{ mt: 2 }}
-              >
-                Abrir Invoice BTCPay
-              </Button>
-            </>
-          )}
+          <Typography variant="body2" color="text.secondary">
+            BTCPay é uma plataforma de pagamentos Bitcoin de código aberto e auto-hospedada.
+          </Typography>
 
           {loading && (
             <Box sx={{ py: 3 }}>
               <CircularProgress size={40} />
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                Redirecionando para pagamento...
+              </Typography>
             </Box>
           )}
         </Stack>
       </Paper>
 
-      {/* Navigation Buttons */}
       <Box display="flex" justifyContent="space-between">
-        <Button
-          variant="outlined"
-          onClick={onBack}
-          size="large"
-          disabled={loading || !!invoiceId}
-        >
+        <Button variant="outlined" onClick={onBack} size="large" disabled={loading}>
           Voltar
         </Button>
-        {!invoiceId && (
-          <Button
-            variant="contained"
-            onClick={handleCreateInvoice}
-            size="large"
-            disabled={loading}
-            sx={{ px: 4 }}
-          >
-            {loading ? 'Criando Invoice...' : 'Gerar Pagamento Bitcoin'}
-          </Button>
-        )}
+        <Button
+          variant="contained"
+          onClick={handlePayment}
+          size="large"
+          disabled={loading}
+          sx={{ px: 4 }}
+        >
+          {loading ? 'Redirecionando...' : 'Pagar com Bitcoin'}
+        </Button>
       </Box>
     </Box>
   );
