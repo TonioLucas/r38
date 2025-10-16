@@ -17,7 +17,6 @@ logger = get_logger(__name__)
 @https_fn.on_request(
     ingress=options.IngressSetting.ALLOW_ALL,  # Webhooks from external providers
     timeout_sec=60,
-    secrets=["STRIPE_WEBHOOK_SECRET", "BTCPAY_WEBHOOK_SECRET", "DUB_WEBHOOK_SECRET"]
 )
 def process_payment_webhook(req: Request):
     """Unified webhook handler for Stripe, BTCPay Server, and dub.co.

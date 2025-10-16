@@ -13,7 +13,6 @@ logger = get_logger(__name__)
 
 
 @https_fn.on_call(
-    secrets=["ASTRON_MEMBERS_AM_KEY", "ASTRON_MEMBERS_AM_SECRET"]
 )
 def regenerate_magic_login_url(req: https_fn.CallableRequest) -> dict[str, Any]:
     """Regenerate Astron Members magic login URL.

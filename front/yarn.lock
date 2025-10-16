@@ -668,7 +668,7 @@
     protobufjs "^7.2.5"
     yargs "^17.7.2"
 
-"@hookform/resolvers@^3.3.1":
+"@hookform/resolvers@^3.10.0":
   version "3.10.0"
   resolved "https://registry.npmjs.org/@hookform/resolvers/-/resolvers-3.10.0.tgz"
   integrity sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag==
@@ -4201,3 +4201,8 @@ yup@^1.3.2:
     tiny-case "^1.0.3"
     toposort "^2.0.2"
     type-fest "^2.19.0"
+
+zod@^4.1.12:
+  version "4.1.12"
+  resolved "https://registry.npmjs.org/zod/-/zod-4.1.12.tgz"
+  integrity sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==

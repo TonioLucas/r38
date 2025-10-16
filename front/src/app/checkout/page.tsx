@@ -12,7 +12,7 @@ import { UserInfoStep } from '@/components/checkout/UserInfoStep';
 import { PaymentMethodStep } from '@/components/checkout/PaymentMethodStep';
 import { StripePayment } from '@/components/checkout/StripePayment';
 import { BTCPayPayment } from '@/components/checkout/BTCPayPayment';
-import { PIXPayment } from '@/components/checkout/PIXPayment';
+import { PIXComingSoon } from '@/components/checkout/PIXComingSoon';
 import { useCheckout } from '@/hooks/useCheckout';
 import { getAffiliateCode } from '@/lib/utils/affiliate';
 import { PaymentRequest } from '@/types/payment';
@@ -88,7 +88,7 @@ function CheckoutContent() {
   };
 
   const handleBackToProducts = () => {
-    router.push('/products');
+    router.push('/');
   };
 
   // Build payment request
@@ -173,15 +173,12 @@ function CheckoutContent() {
                 />
               )}
 
-              {selectedPrice.payment_method === 'btc' && (
-                <BTCPayPayment
-                  paymentRequest={buildPaymentRequest()}
-                  onBack={prevStep}
-                />
+              {selectedPrice.payment_method === 'pix' && (
+                <PIXComingSoon onBack={prevStep} />
               )}
 
-              {selectedPrice.payment_method === 'pix' && (
-                <PIXPayment
+              {selectedPrice.payment_method === 'btc' && (
+                <BTCPayPayment
                   paymentRequest={buildPaymentRequest()}
                   onBack={prevStep}
                 />

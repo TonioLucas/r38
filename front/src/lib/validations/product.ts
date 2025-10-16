@@ -26,7 +26,7 @@ export const productSchema = z.object({
     mentorship_included: z.boolean(),
   }),
 
-  metadata: z.record(z.any()).optional().default({}),
+  metadata: z.record(z.string(), z.unknown()).optional().default({}),
 }).refine(
   (data) => {
     // If status is pre_sale, launch_date is required

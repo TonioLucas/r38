@@ -1,7 +1,6 @@
 import {
   StripeSessionResponse,
   BTCPayInvoiceResponse,
-  PIXPaymentResponse,
   TransactionStatusResponse,
   PaymentRequest,
 } from '@/types/payment';
@@ -15,7 +14,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://us-central1-r38
  * @returns Stripe session with checkout URL
  */
 export async function createStripeSession(request: PaymentRequest): Promise<StripeSessionResponse> {
-  const response = await fetch(`${API_BASE_URL}/create_stripe_session`, {
+  const response = await fetch(`${API_BASE_URL}/create_checkout_session`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -48,28 +47,6 @@ export async function createBTCPayInvoice(request: PaymentRequest): Promise<BTCP
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Failed to create BTCPay invoice' }));
     throw new Error(error.message || 'Failed to create BTCPay invoice');
-  }
-
-  return response.json();
-}
-
-/**
- * Creates a PIX payment
- * @param request Payment request data
- * @returns PIX payment with QR code
- */
-export async function createPIXPayment(request: PaymentRequest): Promise<PIXPaymentResponse> {
-  const response = await fetch(`${API_BASE_URL}/create_pix_payment`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Failed to create PIX payment' }));
-    throw new Error(error.message || 'Failed to create PIX payment');
   }
 
   return response.json();

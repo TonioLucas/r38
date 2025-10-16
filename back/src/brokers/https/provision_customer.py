@@ -13,8 +13,7 @@ logger = get_logger(__name__)
 @https_fn.on_request(
     cors=options.CorsOptions(cors_origins=["*"], cors_methods=["POST", "OPTIONS"]),
     ingress=options.IngressSetting.ALLOW_ALL,
-    timeout_sec=60,
-    secrets=["ASTRON_MEMBERS_AM_KEY", "ASTRON_MEMBERS_AM_SECRET", "ACTIVECAMPAIGN_API_KEY", "PASSWORD_ENCRYPTION_KEY"]
+    timeout_sec=60
 )
 def provision_customer(req: Request):
     """Manual provisioning trigger for admin recovery.

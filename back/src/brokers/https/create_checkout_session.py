@@ -1,5 +1,7 @@
 """Create Stripe Checkout Session HTTP endpoint."""
 
+import os
+from datetime import datetime, timedelta
 from firebase_functions import https_fn, options
 from flask import jsonify, Request
 from src.services.stripe_service import StripeService
@@ -12,13 +14,56 @@ from src.exceptions.CustomError import ExternalServiceError
 logger = get_logger(__name__)
 
 
+def transform_to_entitlements(base, price):
+    """Transform BaseEntitlementsData to EntitlementsData structure.
+
+    Args:
+        base: BaseEntitlementsData from product
+        price: ProductPriceDoc with includes_mentorship flag
+
+    Returns:
+        dict: EntitlementsData structure for subscription
+    """
+    # Platform is always required
+    entitlements = {
+        "platform": {
+            "expires_at": None if base.platform_months is None
+                         else datetime.now() + timedelta(days=base.platform_months * 30),
+            "courses": [],
+            "enabled": True
+        }
+    }
+
+    # Support is optional
+    if base.support_months is not None:
+        entitlements["support"] = {
+            "expires_at": datetime.now() + timedelta(days=base.support_months * 30),
+            "courses": [],
+            "enabled": True
+        }
+
+    # Mentorship is optional (from base or price)
+    if price.includes_mentorship or base.mentorship_included:
+        entitlements["mentorship"] = {
+            "expires_at": None,  # Lifetime for mentorship
+            "courses": [],
+            "enabled": True
+        }
+
+    return entitlements
+
+# Environment-based CORS configuration
+ENV = os.getenv('ENV', 'production')
+CORS_ORIGINS = ["https://renato38.com.br", "https://www.renato38.com.br"]
+if ENV == 'development':
+    CORS_ORIGINS.append("http://localhost:3000")
+
 @https_fn.on_request(
     cors=options.CorsOptions(
-        cors_origins=["https://renato38.com.br", "https://www.renato38.com.br"],
+        cors_origins=CORS_ORIGINS,
         cors_methods=["POST", "OPTIONS"]
     ),
     timeout_sec=30,
-    secrets=["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]
 )
 def create_checkout_session(req: Request):
     """Create Stripe Checkout Session for payment.
@@ -41,57 +86,130 @@ def create_checkout_session(req: Request):
             logger.error("No JSON data provided")
             return (jsonify({'error': 'Invalid JSON'}), 400)
 
-        # Validate required fields
-        required = ['subscription_id', 'product_id', 'price_id']
-        for field in required:
-            if field not in data:
-                logger.warning(f"Missing required field: {field}")
-                return (jsonify({'error': f'{field} required'}), 400)
+        # Validate required fields - support both old and new API formats
+        # New format: priceId, email, name (from frontend)
+        # Old format: subscription_id, product_id, price_id (legacy)
+        if 'priceId' in data:
+            # New format from frontend
+            required = ['priceId', 'email', 'name']
+            for field in required:
+                if field not in data:
+                    logger.warning(f"Missing required field: {field}")
+                    return (jsonify({'error': f'{field} required'}), 400)
 
-        # Get subscription document
-        try:
-            subscription = Subscription(id=data['subscription_id'])
-            if not subscription.doc:
-                logger.error(f"Subscription not found: {data['subscription_id']}")
+            price_id = data['priceId']
+            email = data['email']
+            name = data['name']
+            phone = data.get('phone')
+            affiliate_code = data.get('affiliateCode')
+        else:
+            # Old format (legacy support)
+            required = ['subscription_id', 'product_id', 'price_id']
+            for field in required:
+                if field not in data:
+                    logger.warning(f"Missing required field: {field}")
+                    return (jsonify({'error': f'{field} required'}), 400)
+
+            price_id = data['price_id']
+            # For legacy format, get subscription to extract user info
+            try:
+                subscription = Subscription(id=data['subscription_id'])
+                if not subscription.doc:
+                    logger.error(f"Subscription not found: {data['subscription_id']}")
+                    return (jsonify({'error': 'Subscription not found'}), 404)
+            except Exception as e:
+                logger.error(f"Error fetching subscription: {e}")
                 return (jsonify({'error': 'Subscription not found'}), 404)
-        except Exception as e:
-            logger.error(f"Error fetching subscription: {e}")
-            return (jsonify({'error': 'Subscription not found'}), 404)
-
-        # Get product document
-        try:
-            product = Product(id=data['product_id'])
-            if not product.doc:
-                logger.error(f"Product not found: {data['product_id']}")
-                return (jsonify({'error': 'Product not found'}), 404)
-        except Exception as e:
-            logger.error(f"Error fetching product: {e}")
-            return (jsonify({'error': 'Product not found'}), 404)
 
         # Get price document
         try:
-            price = ProductPrice(id=data['price_id'])
+            price = ProductPrice(id=price_id)
             if not price.doc:
-                logger.error(f"Price not found: {data['price_id']}")
+                logger.error(f"Price not found: {price_id}")
                 return (jsonify({'error': 'Price not found'}), 404)
         except Exception as e:
             logger.error(f"Error fetching price: {e}")
             return (jsonify({'error': 'Price not found'}), 404)
 
+        # Get product document from price
+        try:
+            product = Product(id=price.doc.product_id)
+            if not product.doc:
+                logger.error(f"Product not found: {price.doc.product_id}")
+                return (jsonify({'error': 'Product not found'}), 404)
+        except Exception as e:
+            logger.error(f"Error fetching product: {e}")
+            return (jsonify({'error': 'Product not found'}), 404)
+
+        # Create subscription if using new format
+        if 'priceId' in data:
+            from src.models.firestore_types import SubscriptionStatus, PaymentMethod, PaymentProvider, EntitlementsData, AffiliateData
+            from src.apis.Db import Db
+
+            db = Db.get_instance()
+
+            # Find or create customer
+            customers_ref = db.collections["customers"]
+            customer_query = customers_ref.where("email", "==", email).limit(1).get()
+
+            if len(customer_query) > 0:
+                customer_id = customer_query[0].id
+            else:
+                # Create new customer
+                customer_data = {
+                    "email": email,
+                    "name": name,
+                    "phone": phone,
+                    "created_at": db.timestamp_now(),
+                    "updated_at": db.timestamp_now()
+                }
+                _, customer_ref = customers_ref.add(customer_data)
+                customer_id = customer_ref.id
+
+            # Create subscription with PAYMENT_PENDING status
+            subscription_data = {
+                "customer_id": customer_id,
+                "product_id": product.doc.id,
+                "price_id": price.doc.id,
+                "status": SubscriptionStatus.PAYMENT_PENDING.value,
+                "entitlements": transform_to_entitlements(product.doc.base_entitlements, price.doc),
+                "payment_method": PaymentMethod.CREDIT_CARD.value,  # Will be updated by webhook
+                "payment_provider": PaymentProvider.STRIPE.value,
+                "amount_paid": price.doc.amount,
+                "currency": price.doc.currency,
+                "created_at": db.timestamp_now(),
+                "updated_at": db.timestamp_now()
+            }
+
+            # Add affiliate data if provided
+            if affiliate_code:
+                subscription_data["affiliate_data"] = {
+                    "affiliate_code": affiliate_code,
+                    "recorded_at": db.timestamp_now()
+                }
+
+            _, subscription_ref = db.collections["subscriptions"].add(subscription_data)
+            subscription_id = subscription_ref.id
+            subscription = Subscription(id=subscription_id)
+
+            logger.info(f"Created subscription {subscription_id} for customer {customer_id}")
+        else:
+            subscription_id = subscription.doc.id
+
         # Create Stripe checkout session
         stripe_service = StripeService()
         checkout_url = stripe_service.create_checkout_session(
-            subscription_id=subscription.doc.id,
+            subscription_id=subscription_id,
             product=product,
             price=price,
-            affiliate_id=data.get('affiliate_id')
+            affiliate_id=affiliate_code if 'priceId' in data else data.get('affiliate_id')
         )
 
-        logger.info(f"Created checkout session for subscription {subscription.doc.id}")
+        logger.info(f"Created checkout session for subscription {subscription_id}")
 
         return (jsonify({
             'success': True,
-            'checkout_url': checkout_url
+            'checkoutUrl': checkout_url
         }), 200)
 
     except ExternalServiceError as e:

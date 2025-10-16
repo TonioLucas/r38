@@ -34,8 +34,10 @@ function ProductCard({
   benefits,
   pricing,
   isPreSale = false,
-  productSlug,
   showMentorship = true,
+  productId,
+  prices,
+  productsLoading = false,
 }: {
   title: string;
   subtitle: string;
@@ -46,11 +48,32 @@ function ProductCard({
     card: { total: number; installments: number; installmentValue: number };
   };
   isPreSale?: boolean;
-  productSlug: string;
   showMentorship?: boolean;
+  productId: string | null;
+  prices: Array<{ id: string; includes_mentorship: boolean; payment_method: string; active: boolean }>;
+  productsLoading?: boolean;
 }) {
   const [withMentorship, setWithMentorship] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<"btc" | "pix" | "card">("btc");
+
+  // Find the correct price ID based on mentorship and payment method
+  const getPriceId = (): string | null => {
+    const paymentMethodMap: Record<string, string> = {
+      btc: 'btc',
+      pix: 'pix',
+      card: 'credit_card',
+    };
+
+    const price = prices.find(p =>
+      p.includes_mentorship === withMentorship &&
+      p.payment_method === paymentMethodMap[selectedPayment] &&
+      p.active === true
+    );
+
+    return price?.id || null;
+  };
+
+  const priceId = getPriceId();
 
   const currentPricing = {
     btc: withMentorship ? pricing.btc * 2 : pricing.btc,
@@ -238,7 +261,8 @@ function ProductCard({
         <Button
           variant="contained"
           size="large"
-          href={`/checkout?product=${productSlug}&mentorship=${withMentorship}&payment=${selectedPayment}`}
+          href={productId && priceId ? `/checkout?product=${productId}&price=${priceId}` : '#'}
+          disabled={!productId || !priceId || productsLoading}
           sx={{
             py: 2,
             fontSize: "1.125rem",
@@ -249,9 +273,13 @@ function ProductCard({
             "&:hover": {
               backgroundColor: "#1a1a1a",
             },
+            "&.Mui-disabled": {
+              backgroundColor: "#cccccc",
+              color: "#666666",
+            },
           }}
         >
-          {isPreSale ? "Garantir Pré-venda" : "Começar Agora"}
+          {productsLoading ? "Carregando..." : (isPreSale ? "Garantir Pré-venda" : "Começar Agora")}
         </Button>
       </Stack>
     </Paper>
@@ -536,9 +564,11 @@ export default function Home() {
                           installmentValue: cardPrice?.installment_amount ? cardPrice.installment_amount / 100 : 0,
                         },
                       }}
-                      productSlug={product.id}  // CRITICAL: Use document ID, not slug
                       isPreSale={product.status === 'pre_sale'}
                       showMentorship={!product.base_entitlements.mentorship_included}
+                      productId={product.id}
+                      prices={product.prices}
+                      productsLoading={productsLoading}
                     />
                   );
                 })

@@ -208,7 +208,7 @@ export function ProductDialog({ open, onClose, product, onSave }: ProductDialogP
                   fullWidth
                   required
                   error={!!errors.astron_club_id}
-                  helperText={errors.astron_club_id?.message}
+                  helperText={errors.astron_club_id?.message || "Necessário para integração automática com a plataforma Astron Members."}
                 />
               )}
             />

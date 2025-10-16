@@ -205,7 +205,7 @@ export function ProductTable() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                        {product.slug}
+                        {product.slug || 'no-slug'}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -217,8 +217,8 @@ export function ProductTable() {
                     </TableCell>
                     <TableCell>
                       <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                        {product.astron_club_id.substring(0, 12)}
-                        {product.astron_club_id.length > 12 && '...'}
+                        {product.astron_club_id?.substring(0, 12) || 'N/A'}
+                        {product.astron_club_id && product.astron_club_id.length > 12 && '...'}
                       </Typography>
                     </TableCell>
                     <TableCell align="center">

@@ -78,11 +78,21 @@ class DocumentBase(Generic[DocLike]):
 
         doc_dict = doc.to_dict()
 
+        # Map snake_case fields from Firestore to camelCase for Pydantic
+        if "created_at" in doc_dict and "createdAt" not in doc_dict:
+            doc_dict["createdAt"] = doc_dict.pop("created_at")
+
+        if "updated_at" in doc_dict and "lastUpdatedAt" not in doc_dict:
+            doc_dict["lastUpdatedAt"] = doc_dict.pop("updated_at")
+
         if "lastUpdatedAt" not in doc_dict:
             doc_dict["lastUpdatedAt"] = doc_dict.get(
                 "createdAt", datetime.now(timezone.utc))
 
-        self._doc = self.pydantic_model(**doc.to_dict())
+        # Include document ID in the data
+        doc_dict["id"] = doc.id
+
+        self._doc = self.pydantic_model(**doc_dict)
 
     @property
     def doc(self) -> DocLike:

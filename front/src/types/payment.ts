@@ -14,13 +14,8 @@ export interface BTCPayInvoiceResponse {
   btcAddress?: string;
 }
 
-// PIX payment response
-export interface PIXPaymentResponse {
-  paymentId: string;
-  pixCode: string;
-  pixQRCode: string;
-  expiresAt: string;
-}
+// Note: PIX payments use StripeSessionResponse (same as credit cards)
+// PIX is handled via Stripe Checkout with payment_method_types=['card', 'pix']
 
 // Transaction status response
 export interface TransactionStatusResponse {

@@ -12,7 +12,6 @@ logger = get_logger(__name__)
 
 
 @https_fn.on_call(
-    secrets=["ASTRON_MEMBERS_AM_KEY", "ASTRON_MEMBERS_AM_SECRET", "ACTIVECAMPAIGN_API_KEY", "PASSWORD_ENCRYPTION_KEY"]
 )
 def approve_manual_verification(req: https_fn.CallableRequest) -> dict[str, Any]:
     """Approve manual verification and trigger customer provisioning.

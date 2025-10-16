@@ -62,6 +62,12 @@ class StripeService:
 
             customer_id = subscription.doc.customer_id
 
+            # Get customer data for prefilling
+            from src.documents.customers.Customer import Customer
+            customer = Customer(id=customer_id)
+            if not customer.doc:
+                raise ValueError(f"Customer {customer_id} not found")
+
             # Build metadata
             metadata = {
                 'subscription_id': subscription_id,
@@ -76,7 +82,8 @@ class StripeService:
             # Create Checkout Session
             session = stripe.checkout.Session.create(
                 mode='payment',  # One-time payment, not recurring
-                payment_method_types=['card', 'pix'],  # Enable both card and PIX
+                payment_method_types=['card'],  # PIX temporarily paused - coming soon
+                customer_email=customer.doc.email,  # Prefill email
                 line_items=[{
                     'price_data': {
                         'currency': price.doc.currency.lower(),
@@ -93,19 +100,24 @@ class StripeService:
                 metadata=metadata,
                 expires_at=int(time.time()) + (30 * 60),  # Expires in 30 minutes
                 locale='pt-BR',  # Brazilian Portuguese
+                phone_number_collection={'enabled': True},  # Collect phone number
             )
 
             logger.info(f"Created Stripe Checkout Session: {session.id} for subscription {subscription_id}")
 
             return session.url
 
-        except stripe.error.StripeError as e:
-            logger.error(f"Stripe API error creating checkout session: {e}")
-            raise ExternalServiceError(
-                service="Stripe",
-                message=f"Failed to create checkout session: {str(e)}",
-                details={"subscription_id": subscription_id}
-            )
+        except Exception as stripe_error:
+            # Handle Stripe errors (works with both old and new stripe library versions)
+            if 'stripe' in str(type(stripe_error).__module__):
+                logger.error(f"Stripe API error creating checkout session: {stripe_error}")
+                raise ExternalServiceError(
+                    service="Stripe",
+                    message=f"Failed to create checkout session: {str(stripe_error)}",
+                    details={"subscription_id": subscription_id}
+                )
+            # Re-raise non-Stripe exceptions
+            raise
         except Exception as e:
             logger.error(f"Unexpected error creating checkout session: {e}", exc_info=True)
             raise ExternalServiceError(
@@ -144,10 +156,12 @@ class StripeService:
             logger.error(f"Invalid Stripe webhook payload: {e}")
             raise ValueError(f"Invalid payload: {str(e)}")
 
-        except stripe.error.SignatureVerificationError as e:
-            # Invalid signature
-            logger.error(f"Invalid Stripe webhook signature: {e}")
-            raise ValueError(f"Invalid signature: {str(e)}")
+        except Exception as e:
+            # Invalid signature (works with both old and new stripe library)
+            if 'SignatureVerificationError' in str(type(e).__name__):
+                logger.error(f"Invalid Stripe webhook signature: {e}")
+                raise ValueError(f"Invalid signature: {str(e)}")
+            raise
 
     def get_session(self, session_id: str) -> dict:
         """Retrieve Stripe Checkout Session details.
@@ -173,10 +187,13 @@ class StripeService:
                 'metadata': session.metadata,
             }
 
-        except stripe.error.StripeError as e:
-            logger.error(f"Stripe API error retrieving session: {e}")
-            raise ExternalServiceError(
-                service="Stripe",
-                message=f"Failed to retrieve session: {str(e)}",
-                details={"session_id": session_id}
-            )
+        except Exception as e:
+            # Handle Stripe errors (works with both old and new stripe library versions)
+            if 'stripe' in str(type(e).__module__):
+                logger.error(f"Stripe API error retrieving session: {e}")
+                raise ExternalServiceError(
+                    service="Stripe",
+                    message=f"Failed to retrieve session: {str(e)}",
+                    details={"session_id": session_id}
+                )
+            raise
