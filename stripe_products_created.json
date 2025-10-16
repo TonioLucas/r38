@@ -1,0 +1,75 @@
+{
+  "created_at": "2025-10-16T12:30:00Z",
+  "products": [
+    {
+      "stripe_product_id": "prod_TFKu8wIkcLBKBf",
+      "name": "Auto Custódia com RENATO 38",
+      "firestore_slug": "auto-custodia",
+      "has_mentorship": false,
+      "prices": {
+        "btc": 30000,
+        "pix": 35000,
+        "card": {
+          "total": 39000,
+          "installments": 10,
+          "installment_value": 3900
+        }
+      }
+    },
+    {
+      "stripe_product_id": "prod_TFKudCZVnhm9FO",
+      "name": "Lex BTC",
+      "firestore_slug": "lex-btc",
+      "has_mentorship": true,
+      "prices_without_mentorship": {
+        "btc": 150000,
+        "pix": 180000,
+        "card": {
+          "total": 199990,
+          "installments": 10,
+          "installment_value": 19999
+        }
+      },
+      "prices_with_mentorship": {
+        "btc": 300000,
+        "pix": 360000,
+        "card": {
+          "total": 399980,
+          "installments": 10,
+          "installment_value": 39998
+        }
+      }
+    },
+    {
+      "stripe_product_id": "prod_TFKuGVOuPyVId7",
+      "name": "Operando Futuros e Derivativos",
+      "firestore_slug": "futuros",
+      "has_mentorship": true,
+      "prices_without_mentorship": {
+        "btc": 150000,
+        "pix": 180000,
+        "card": {
+          "total": 199990,
+          "installments": 10,
+          "installment_value": 19999
+        }
+      },
+      "prices_with_mentorship": {
+        "btc": 300000,
+        "pix": 360000,
+        "card": {
+          "total": 399980,
+          "installments": 10,
+          "installment_value": 39998
+        }
+      }
+    }
+  ],
+  "notes": {
+    "payment_type": "ALL products are ONE-TIME payments only",
+    "currency": "BRL (amounts in centavos)",
+    "installments": "Handled by card processor, NOT Stripe subscriptions",
+    "mentorship": "Doubles the price when selected",
+    "access": "Lifetime platform access + 12 months support for all products"
+  }
+}

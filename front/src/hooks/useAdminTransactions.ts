@@ -81,7 +81,7 @@ export function useAdminTransactions(filters?: UseAdminTransactionsFilters) {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters?.provider, filters?.status]);
 
   useEffect(() => {
     loadTransactions();

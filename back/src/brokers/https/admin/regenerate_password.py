@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 
 
 @https_fn.on_call(
-    secrets=["ASTRON_MEMBERS_API_TOKEN", "ACTIVECAMPAIGN_API_KEY", "PASSWORD_ENCRYPTION_KEY"]
+    secrets=["ASTRON_MEMBERS_AM_KEY", "ASTRON_MEMBERS_AM_SECRET", "ACTIVECAMPAIGN_API_KEY", "PASSWORD_ENCRYPTION_KEY"]
 )
 def regenerate_customer_password(req: https_fn.CallableRequest) -> dict[str, Any]:
     """Regenerate customer password across all systems.

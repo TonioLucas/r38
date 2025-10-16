@@ -21,6 +21,7 @@ import {
   VerifiedUser as VerifiedIcon,
   Subscriptions as SubscriptionsIcon,
   Payment as PaymentIcon,
+  Inventory as ProductIcon,
 } from "@mui/icons-material";
 import { SettingsForm } from "@/sections/admin/SettingsForm";
 import { BannersForm } from "@/sections/admin/BannersForm";
@@ -29,6 +30,7 @@ import { CustomerTable } from "@/sections/admin/commercialization/CustomerTable"
 import { ManualVerificationTable } from "@/sections/admin/commercialization/ManualVerificationTable";
 import { SubscriptionTable } from "@/sections/admin/commercialization/SubscriptionTable";
 import { TransactionTable } from "@/sections/admin/commercialization/TransactionTable";
+import { ProductTable } from "@/sections/admin/commercialization/ProductTable";
 import { useAuth } from "@/auth/useAuth";
 import { AuthGuard } from "@/components/guards/AuthGuard";
 import { canAccessAdmin } from "@/config/adminWhitelist";
@@ -214,6 +216,13 @@ export default function AdminPage() {
                 id="admin-tab-6"
                 aria-controls="admin-tabpanel-6"
               />
+              <Tab
+                label="Produtos"
+                icon={<ProductIcon />}
+                iconPosition="start"
+                id="admin-tab-7"
+                aria-controls="admin-tabpanel-7"
+              />
             </Tabs>
           </Box>
 
@@ -243,6 +252,10 @@ export default function AdminPage() {
 
           <TabPanel value={tabValue} index={6}>
             <TransactionTable />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={7}>
+            <ProductTable />
           </TabPanel>
         </Box>
       </Container>
