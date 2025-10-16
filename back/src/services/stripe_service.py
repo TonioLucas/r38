@@ -82,7 +82,7 @@ class StripeService:
             # Create Checkout Session
             session = stripe.checkout.Session.create(
                 mode='payment',  # One-time payment, not recurring
-                payment_method_types=['card'],  # PIX temporarily paused - coming soon
+                payment_method_types=['card', 'pix'],  # Enable both card and PIX payments
                 customer_email=customer.doc.email,  # Prefill email
                 line_items=[{
                     'price_data': {

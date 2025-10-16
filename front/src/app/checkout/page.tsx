@@ -12,7 +12,6 @@ import { UserInfoStep } from '@/components/checkout/UserInfoStep';
 import { PaymentMethodStep } from '@/components/checkout/PaymentMethodStep';
 import { StripePayment } from '@/components/checkout/StripePayment';
 import { BTCPayPayment } from '@/components/checkout/BTCPayPayment';
-import { PIXComingSoon } from '@/components/checkout/PIXComingSoon';
 import { useCheckout } from '@/hooks/useCheckout';
 import { getAffiliateCode } from '@/lib/utils/affiliate';
 import { PaymentRequest } from '@/types/payment';
@@ -166,15 +165,11 @@ function CheckoutContent() {
 
           {activeStep === 3 && isComplete() && (
             <>
-              {selectedPrice.payment_method === 'credit_card' && (
+              {(selectedPrice.payment_method === 'credit_card' || selectedPrice.payment_method === 'pix') && (
                 <StripePayment
                   paymentRequest={buildPaymentRequest()}
                   onBack={prevStep}
                 />
-              )}
-
-              {selectedPrice.payment_method === 'pix' && (
-                <PIXComingSoon onBack={prevStep} />
               )}
 
               {selectedPrice.payment_method === 'btc' && (

@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { useSnackbar } from 'notistack';
 import { ProductGrid } from '@/components/products/ProductGrid';
 import { useProducts } from '@/hooks/useProducts';
 import { initAffiliateTracking } from '@/lib/utils/affiliate';
@@ -16,6 +17,7 @@ import { initAffiliateTracking } from '@/lib/utils/affiliate';
 export default function ProductsPage() {
   const router = useRouter();
   const { products, loading, error } = useProducts();
+  const { enqueueSnackbar } = useSnackbar();
 
   // Initialize affiliate tracking on page load
   useEffect(() => {
@@ -23,6 +25,15 @@ export default function ProductsPage() {
   }, []);
 
   const handleSelectPrice = (product: any, price: any) => {
+    // Check if PIX payment method
+    if (price.payment_method === 'pix') {
+      enqueueSnackbar('PIX está temporariamente pausado e será liberado em breve. Por favor, escolha outra forma de pagamento.', {
+        variant: 'info',
+        autoHideDuration: 6000,
+      });
+      return;
+    }
+
     // Navigate to checkout with product and price IDs
     router.push(`/checkout?product=${product.id}&price=${price.id}`);
   };
