@@ -88,6 +88,7 @@ class Db(ABC):
                 "affiliate_transactions": self.firestore.collection("affiliate_transactions"),
                 "webhook_events": self.firestore.collection("webhook_events"),
                 "manual_verifications": self.firestore.collection("manual_verifications"),
+                "admin_actions": self.firestore.collection("admin_actions"),
             }
         return self._collections
 
