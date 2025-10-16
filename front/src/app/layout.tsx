@@ -4,6 +4,7 @@ import { AuthProvider } from "@/auth/AuthProvider";
 import { ThemeProvider } from "@/theme/ThemeProvider";
 import { GoogleScripts } from "@/components/GoogleScripts";
 import { UTMInitializer } from "@/components/UTMInitializer";
+import { Analytics as DubAnalytics } from "@dub/analytics/react";
 
 export const metadata: Metadata = {
   title: "Renato 'Trezoitão' Amoedo — Bitcoin, Cristianismo e Soberania Individual",
@@ -61,6 +62,13 @@ export default function RootLayout({
             {children}
           </AuthProvider>
         </ThemeProvider>
+        <DubAnalytics
+          attributionModel="last-click"
+          cookieOptions={{
+            expiresInDays: 30,
+            domain: ".renato38.com.br"
+          }}
+        />
       </body>
     </html>
   );

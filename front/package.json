@@ -12,6 +12,7 @@
     "deploy:preview": "npm run build && cd .. && firebase hosting:channel:deploy preview"
   },
   "dependencies": {
+    "@dub/analytics": "^0.0.32",
     "@emotion/cache": "^11.11.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",

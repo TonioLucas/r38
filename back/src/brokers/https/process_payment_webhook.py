@@ -6,6 +6,7 @@ from google.cloud import firestore
 from src.services.webhook_validator import validate_webhook
 from src.services.webhook_processors.stripe_processor import process_stripe_webhook
 from src.services.webhook_processors.btcpay_processor import process_btcpay_webhook
+from src.services.webhook_processors.dub_processor import process_dub_webhook
 from src.documents.webhooks.WebhookEvent import WebhookEvent
 from src.apis.Db import Db
 from src.util.logger import get_logger
@@ -16,10 +17,10 @@ logger = get_logger(__name__)
 @https_fn.on_request(
     ingress=options.IngressSetting.ALLOW_ALL,  # Webhooks from external providers
     timeout_sec=60,
-    secrets=["STRIPE_WEBHOOK_SECRET", "BTCPAY_WEBHOOK_SECRET"]
+    secrets=["STRIPE_WEBHOOK_SECRET", "BTCPAY_WEBHOOK_SECRET", "DUB_WEBHOOK_SECRET"]
 )
 def process_payment_webhook(req: Request):
-    """Unified webhook handler for Stripe and BTCPay Server.
+    """Unified webhook handler for Stripe, BTCPay Server, and dub.co.
 
     Args:
         req: Firebase HTTP request
@@ -46,6 +47,8 @@ def process_payment_webhook(req: Request):
             signature = req.headers.get('Stripe-Signature')
         elif provider in ['btcpay', 'btcpayserver']:
             signature = req.headers.get('BTCPAY-SIG') or req.headers.get('BTCPay-Sig')
+        elif provider == 'dub':
+            signature = req.headers.get('X-Dub-Signature')
         else:
             logger.error(f"Invalid provider: {provider}")
             return (jsonify({'error': 'Invalid provider'}), 400)
@@ -63,6 +66,8 @@ def process_payment_webhook(req: Request):
 
         # Generate event ID for idempotency
         if provider == 'stripe':
+            event_id = event['id']
+        elif provider == 'dub':
             event_id = event['id']
         else:
             # BTCPay doesn't have event ID, use invoice ID + type
@@ -101,6 +106,8 @@ def process_payment_webhook(req: Request):
             try:
                 if provider == 'stripe':
                     process_stripe_webhook(event)
+                elif provider == 'dub':
+                    process_dub_webhook(event)
                 else:
                     process_btcpay_webhook(event)
 

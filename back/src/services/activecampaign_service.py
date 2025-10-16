@@ -340,3 +340,228 @@ class ActiveCampaignService:
             "list_id": list_id,
             "tag_id": tag_id
         }
+
+    def sync_customer_purchase(
+        self,
+        email: str,
+        name: str,
+        product_name: str,
+        support_expires_at: str,
+        mentorship_included: bool,
+        generated_password: str,
+        magic_login_url: str
+    ) -> Dict[str, Any]:
+        """Sync customer purchase data and trigger welcome email.
+
+        Args:
+            email: Customer email
+            name: Customer name
+            product_name: Name of purchased product
+            support_expires_at: Support expiration date
+            mentorship_included: Whether mentorship is included
+            generated_password: Generated password for customer
+            magic_login_url: Magic login URL for Astron Members
+
+        Returns:
+            Dict with success status and contact ID
+        """
+        try:
+            # Parse name
+            name_parts = name.split(maxsplit=1)
+            first_name = name_parts[0] if name_parts else ""
+            last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+            # Find or create contact
+            contact = self.find_or_create_contact(email, first_name, last_name)
+            contact_id = contact['id']
+
+            # Update custom fields with purchase data
+            custom_fields = {
+                'subscription_status': 'active',
+                'product_purchased': product_name,
+                'support_expires_at': support_expires_at,
+                'mentorship_included': 'yes' if mentorship_included else 'no',
+                'generated_password': generated_password,
+                'magic_login_url': magic_login_url
+            }
+
+            # Update contact fields
+            self.update_contact_fields(contact_id, custom_fields)
+
+            # Add purchase tag
+            purchase_tag = f"Purchased_{product_name.replace(' ', '_')}"
+            purchase_tag_id = self.get_or_create_tag(purchase_tag)
+            self.add_tag_to_contact(contact_id, purchase_tag_id)
+
+            # Add Customer tag
+            customer_tag_id = self.get_or_create_tag("Customer")
+            self.add_tag_to_contact(contact_id, customer_tag_id)
+
+            # Remove Lead tag if exists
+            try:
+                lead_tag_id = self.get_tag_id_by_name("Lead")
+                if lead_tag_id:
+                    self.remove_tag_from_contact(contact_id, lead_tag_id)
+            except Exception:
+                pass  # Lead tag might not exist
+
+            # Trigger welcome email automation
+            welcome_tag_id = self.get_or_create_tag("Trigger_Welcome_Email")
+            self.add_tag_to_contact(contact_id, welcome_tag_id)
+
+            logger.info(f"Customer purchase synced for {email}")
+
+            return {
+                "success": True,
+                "contact_id": contact_id
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to sync customer purchase: {e}", exc_info=True)
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    def find_or_create_contact(self, email: str, first_name: str, last_name: str) -> Dict[str, Any]:
+        """Find existing contact or create new one.
+
+        Args:
+            email: Contact email
+            first_name: Contact first name
+            last_name: Contact last name
+
+        Returns:
+            Contact data dict
+        """
+        # Search for existing contact by email
+        response = self._request("GET", f"/contacts?email={email}")
+
+        if response.get('contacts'):
+            # Contact exists, return it
+            return response['contacts'][0]
+
+        # Create new contact
+        contact_data = {
+            "contact": {
+                "email": email,
+                "firstName": first_name,
+                "lastName": last_name
+            }
+        }
+
+        result = self._request("POST", "/contacts", contact_data)
+        return result['contact']
+
+    def update_contact_fields(self, contact_id: str, fields: Dict[str, Any]) -> bool:
+        """Update contact custom fields.
+
+        Args:
+            contact_id: ActiveCampaign contact ID
+            fields: Dict of field names and values
+
+        Returns:
+            True if successful
+        """
+        # First get custom field IDs
+        field_values = []
+
+        for field_name, value in fields.items():
+            # Get field ID by name (or create if doesn't exist)
+            field_id = self.get_or_create_custom_field(field_name)
+            field_values.append({
+                "field": field_id,
+                "value": str(value)
+            })
+
+        # Update contact with field values
+        contact_data = {
+            "contact": {
+                "fieldValues": field_values
+            }
+        }
+
+        self._request("PUT", f"/contacts/{contact_id}", contact_data)
+        logger.info(f"Updated {len(fields)} fields for contact {contact_id}")
+        return True
+
+    def get_or_create_custom_field(self, field_name: str) -> str:
+        """Get custom field ID or create if doesn't exist.
+
+        Args:
+            field_name: Name of the custom field
+
+        Returns:
+            Field ID
+        """
+        # Try to get existing field
+        response = self._request("GET", "/fields")
+
+        for field in response.get('fields', []):
+            if field['title'].lower() == field_name.lower():
+                return field['id']
+
+        # Create new field
+        field_data = {
+            "field": {
+                "type": "text",
+                "title": field_name,
+                "descript": f"Auto-created field: {field_name}",
+                "visible": 1
+            }
+        }
+
+        result = self._request("POST", "/fields", field_data)
+        return result['field']['id']
+
+    def get_or_create_tag(self, tag_name: str) -> str:
+        """Get tag ID or create if doesn't exist.
+
+        Args:
+            tag_name: Name of the tag
+
+        Returns:
+            Tag ID
+        """
+        try:
+            # Try to get existing tag
+            return self.get_tag_id_by_name(tag_name)
+        except Exception:
+            # Create new tag
+            tag_data = {
+                "tag": {
+                    "tag": tag_name,
+                    "tagType": "contact",
+                    "description": f"Auto-created tag: {tag_name}"
+                }
+            }
+
+            result = self._request("POST", "/tags", tag_data)
+            return result['tag']['id']
+
+    def remove_tag_from_contact(self, contact_id: str, tag_id: str) -> bool:
+        """Remove tag from contact.
+
+        Args:
+            contact_id: ActiveCampaign contact ID
+            tag_id: ActiveCampaign tag ID
+
+        Returns:
+            True if successful
+        """
+        try:
+            # First get the contactTag association ID
+            response = self._request("GET", f"/contacts/{contact_id}/contactTags")
+
+            for contact_tag in response.get('contactTags', []):
+                if contact_tag['tag'] == tag_id:
+                    # Delete the association
+                    self._request("DELETE", f"/contactTags/{contact_tag['id']}")
+                    logger.info(f"Removed tag {tag_id} from contact {contact_id}")
+                    return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to remove tag: {e}")
+            return False

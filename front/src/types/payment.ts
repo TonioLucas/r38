@@ -1,0 +1,42 @@
+import { PaymentStatus, PaymentProvider, PaymentMethod } from './firestore';
+
+// Stripe payment response
+export interface StripeSessionResponse {
+  sessionId: string;
+  checkoutUrl: string;
+}
+
+// BTCPay payment response
+export interface BTCPayInvoiceResponse {
+  invoiceId: string;
+  checkoutLink: string;
+  btcAmount: string;
+  btcAddress?: string;
+}
+
+// PIX payment response
+export interface PIXPaymentResponse {
+  paymentId: string;
+  pixCode: string;
+  pixQRCode: string;
+  expiresAt: string;
+}
+
+// Transaction status response
+export interface TransactionStatusResponse {
+  status: PaymentStatus;
+  paymentProvider: PaymentProvider;
+  paymentMethod: PaymentMethod;
+  transactionId?: string;
+  processedAt?: string;
+  error?: string;
+}
+
+// Payment request payload
+export interface PaymentRequest {
+  priceId: string;
+  email: string;
+  name: string;
+  phone?: string;
+  affiliateCode?: string;
+}

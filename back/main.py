@@ -51,6 +51,16 @@ from src.brokers.https.create_btcpay_invoice import create_btcpay_invoice
 from src.brokers.https.process_payment_webhook import process_payment_webhook
 from src.brokers.https.get_subscription_status import get_subscription_status
 
+# Import provisioning functions
+from src.brokers.https.provision_customer import provision_customer
+
+# Import admin functions
+from src.brokers.https.admin.approve_verification import approve_manual_verification
+from src.brokers.https.admin.reject_verification import reject_manual_verification
+from src.brokers.https.admin.regenerate_password import regenerate_customer_password
+from src.brokers.https.admin.regenerate_magic_link import regenerate_magic_login_url
+from src.brokers.https.admin.extend_entitlement import extend_subscription_entitlement
+
 # Import triggered functions
 from src.brokers.triggered.on_item_created import on_item_created
 from src.brokers.triggered.on_item_updated import on_item_updated
@@ -74,6 +84,16 @@ __all__ = [
     'create_btcpay_invoice',
     'process_payment_webhook',
     'get_subscription_status',
+
+    # Provisioning functions
+    'provision_customer',
+
+    # Admin functions
+    'approve_manual_verification',
+    'reject_manual_verification',
+    'regenerate_customer_password',
+    'regenerate_magic_login_url',
+    'extend_subscription_entitlement',
 
     # Triggered functions
     'on_item_created',

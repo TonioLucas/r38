@@ -69,6 +69,20 @@ def process_invoice_settled(event: dict):
 
         logger.info(f"Created payment record {payment_id} for subscription {subscription_id}")
 
+        # Trigger provisioning workflow
+        try:
+            from src.services.customer_provisioning_service import CustomerProvisioningService
+
+            provisioning_service = CustomerProvisioningService()
+            provisioning_result = provisioning_service.provision_customer(subscription_id)
+
+            logger.info(f"Provisioning triggered successfully for subscription: {subscription_id}")
+
+        except Exception as provisioning_error:
+            logger.error(f"Provisioning failed for {subscription_id}: {provisioning_error}", exc_info=True)
+            # Don't fail webhook processing if provisioning fails
+            # Admin can retry manually
+
     except Exception as e:
         logger.error(f"Error processing InvoiceSettled: {e}", exc_info=True)
         raise

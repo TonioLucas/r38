@@ -6,6 +6,7 @@ import stripe
 from typing import Optional
 from src.documents.products.Product import Product
 from src.documents.products.ProductPrice import ProductPrice
+from src.documents.customers.Subscription import Subscription
 from src.util.logger import get_logger
 from src.exceptions.CustomError import ExternalServiceError
 
@@ -54,11 +55,19 @@ class StripeService:
             ExternalServiceError: If Stripe API request fails
         """
         try:
+            # Get customer ID from subscription
+            subscription = Subscription(id=subscription_id)
+            if not subscription.doc:
+                raise ValueError(f"Subscription {subscription_id} not found")
+
+            customer_id = subscription.doc.customer_id
+
             # Build metadata
             metadata = {
                 'subscription_id': subscription_id,
                 'product_id': product.doc.id,
                 'price_id': price.doc.id,
+                'dubCustomerId': customer_id,  # Add for dub.co affiliate tracking
             }
 
             if affiliate_id:

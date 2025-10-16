@@ -12,10 +12,23 @@ import {
   Alert,
   Button,
 } from "@mui/material";
-import { Settings as SettingsIcon, People as PeopleIcon, ExitToApp as LogoutIcon, ViewCarousel as BannerIcon } from "@mui/icons-material";
+import {
+  Settings as SettingsIcon,
+  People as PeopleIcon,
+  ExitToApp as LogoutIcon,
+  ViewCarousel as BannerIcon,
+  Person as PersonIcon,
+  VerifiedUser as VerifiedIcon,
+  Subscriptions as SubscriptionsIcon,
+  Payment as PaymentIcon,
+} from "@mui/icons-material";
 import { SettingsForm } from "@/sections/admin/SettingsForm";
 import { BannersForm } from "@/sections/admin/BannersForm";
 import LeadsAnalyticsDashboard from "@/sections/admin/LeadsAnalyticsDashboard";
+import { CustomerTable } from "@/sections/admin/commercialization/CustomerTable";
+import { ManualVerificationTable } from "@/sections/admin/commercialization/ManualVerificationTable";
+import { SubscriptionTable } from "@/sections/admin/commercialization/SubscriptionTable";
+import { TransactionTable } from "@/sections/admin/commercialization/TransactionTable";
 import { useAuth } from "@/auth/useAuth";
 import { AuthGuard } from "@/components/guards/AuthGuard";
 import { canAccessAdmin } from "@/config/adminWhitelist";
@@ -145,7 +158,13 @@ export default function AdminPage() {
           </Box>
 
           <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-            <Tabs value={tabValue} onChange={handleTabChange} aria-label="admin tabs">
+            <Tabs
+              value={tabValue}
+              onChange={handleTabChange}
+              aria-label="admin tabs"
+              variant="scrollable"
+              scrollButtons="auto"
+            >
               <Tab
                 label="Configurações"
                 icon={<SettingsIcon />}
@@ -167,12 +186,40 @@ export default function AdminPage() {
                 id="admin-tab-2"
                 aria-controls="admin-tabpanel-2"
               />
+              <Tab
+                label="Clientes"
+                icon={<PersonIcon />}
+                iconPosition="start"
+                id="admin-tab-3"
+                aria-controls="admin-tabpanel-3"
+              />
+              <Tab
+                label="Verificações"
+                icon={<VerifiedIcon />}
+                iconPosition="start"
+                id="admin-tab-4"
+                aria-controls="admin-tabpanel-4"
+              />
+              <Tab
+                label="Assinaturas"
+                icon={<SubscriptionsIcon />}
+                iconPosition="start"
+                id="admin-tab-5"
+                aria-controls="admin-tabpanel-5"
+              />
+              <Tab
+                label="Transações"
+                icon={<PaymentIcon />}
+                iconPosition="start"
+                id="admin-tab-6"
+                aria-controls="admin-tabpanel-6"
+              />
             </Tabs>
           </Box>
 
-        <TabPanel value={tabValue} index={0}>
-          <SettingsForm />
-        </TabPanel>
+          <TabPanel value={tabValue} index={0}>
+            <SettingsForm />
+          </TabPanel>
 
           <TabPanel value={tabValue} index={1}>
             <BannersForm />
@@ -180,6 +227,22 @@ export default function AdminPage() {
 
           <TabPanel value={tabValue} index={2}>
             <LeadsAnalyticsDashboard />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={3}>
+            <CustomerTable />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={4}>
+            <ManualVerificationTable />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={5}>
+            <SubscriptionTable />
+          </TabPanel>
+
+          <TabPanel value={tabValue} index={6}>
+            <TransactionTable />
           </TabPanel>
         </Box>
       </Container>
