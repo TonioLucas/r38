@@ -15,6 +15,7 @@ import {
   CircularProgress,
   IconButton,
   InputAdornment,
+  Box,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -44,9 +45,14 @@ export default function ManualPurchaseSettings() {
     try {
       const settings = await getManualPurchaseSettings();
       if (settings) {
-        setEnabled(settings.enabled);
-        setToken(settings.override_token);
-        setPriceReais(settings.override_price_reais);
+        setEnabled(settings.enabled || false);
+        setToken(settings.override_token || '');
+        setPriceReais(settings.override_price_reais || 5.00);
+      } else {
+        // Settings don't exist yet, use defaults
+        setEnabled(false);
+        setToken('');
+        setPriceReais(5.00);
       }
     } catch (error) {
       console.error('Error loading manual purchase settings:', error);
@@ -106,23 +112,24 @@ export default function ManualPurchaseSettings() {
     enqueueSnackbar('URL de exemplo copiada!', { variant: 'success' });
   };
 
-  if (loading) {
-    return <CircularProgress />;
-  }
-
   return (
     <Accordion>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography variant="h6">Compra Manual (Dev Override)</Typography>
       </AccordionSummary>
       <AccordionDetails>
-        <Stack spacing={3}>
-          <Alert severity="warning">
-            <strong>Atenção:</strong> Esta funcionalidade permite compras a preço reduzido para testes em produção.
-            Use apenas para validar o fluxo de pagamento. Todas as compras manuais são registradas no audit log.
-          </Alert>
+        {loading ? (
+          <Box display="flex" justifyContent="center" py={3}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Stack spacing={3}>
+            <Alert severity="warning">
+              <strong>Atenção:</strong> Esta funcionalidade permite compras a preço reduzido para testes em produção.
+              Use apenas para validar o fluxo de pagamento. Todas as compras manuais são registradas no audit log.
+            </Alert>
 
-          <FormControlLabel
+            <FormControlLabel
             control={
               <Switch
                 checked={enabled}
@@ -190,15 +197,16 @@ export default function ManualPurchaseSettings() {
             </Button>
           </Alert>
 
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={saving}
-            sx={{ alignSelf: 'flex-start' }}
-          >
-            {saving ? 'Salvando...' : 'Salvar Configurações'}
-          </Button>
-        </Stack>
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={saving}
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              {saving ? 'Salvando...' : 'Salvar Configurações'}
+            </Button>
+          </Stack>
+        )}
       </AccordionDetails>
     </Accordion>
   );
