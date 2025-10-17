@@ -156,14 +156,30 @@ def approve_manual_verification(req: https_fn.CallableRequest) -> dict[str, Any]
 
         logger.info(f"Created subscription for manual verification: {subscription_id}")
 
-        # Trigger CustomerProvisioningService
-        provisioning_service = CustomerProvisioningService()
-        provisioning_result = provisioning_service.provision_customer(subscription_id)
+        # Trigger CustomerProvisioningService with error handling
+        try:
+            provisioning_service = CustomerProvisioningService()
+            provisioning_result = provisioning_service.provision_customer(subscription_id)
+            logger.info(f"Provisioning completed for verification {verification_id}")
 
-        # Update verification with subscription reference
-        verification_ref.update({
-            'subscription_created': subscription_id
-        })
+            # Update verification with subscription reference
+            verification_ref.update({
+                'subscription_created': subscription_id
+            })
+        except Exception as prov_error:
+            logger.error(f"Provisioning failed for verification {verification_id}: {prov_error}", exc_info=True)
+
+            # Return verification to pending state for investigation
+            verification_ref.update({
+                'status': 'pending',
+                'provisioning_error': str(prov_error),
+                'provisioning_failed_at': db.timestamp_now()
+            })
+
+            raise https_fn.HttpsError(
+                https_fn.FunctionsErrorCode.INTERNAL,
+                f'Provisioning failed: {prov_error}'
+            )
 
         # Log admin action
         admin_action_data = {

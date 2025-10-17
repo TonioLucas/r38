@@ -34,5 +34,10 @@ export interface PaymentRequest {
   name: string;
   phone?: string;
   affiliateCode?: string;
+  leadId?: string;
   manualOverrideToken?: string;
+  partnerOffer?: {
+    partner: string;
+    proofUrl: string;
+  };
 }

@@ -26,6 +26,8 @@ import { SocialMediaIcons } from "@/components/common/SocialMediaIcons";
 import BannerCarousel from "@/components/carousel/BannerCarousel";
 import Image from "next/image";
 import { initAffiliateTracking } from "@/lib/utils/affiliate";
+import { PartnerOfferButton } from "@/components/landing/PartnerOfferButton";
+import { PartnerOfferCard } from "@/components/landing/PartnerOfferCard";
 
 // Product Card with Mentorship Toggle Component
 function ProductCard({
@@ -230,7 +232,7 @@ function ProductCard({
               </Typography>
             </ToggleButton>
             <ToggleButton value="pix">
-              <Typography sx={{ fontSize: 14, fontWeight: 800, mb: 0.5 }}>R$ / PIX</Typography>
+              <Typography sx={{ fontSize: 14, fontWeight: 800, mb: 0.5 }}>PIX</Typography>
               <Typography
                 variant="body2"
                 fontWeight={700}
@@ -289,6 +291,7 @@ function ProductCard({
 export default function Home() {
   const router = useRouter();
   const [settings, setSettings] = useState<SettingsDoc | null>(null);
+  const [showPartnerOffer, setShowPartnerOffer] = useState(false);
   const { products, loading: productsLoading } = useProducts();
 
   useEffect(() => {
@@ -515,6 +518,68 @@ export default function Home() {
               Escolha o treinamento ideal para o seu nível de conhecimento
             </Typography>
 
+            {/* Partner Offer CTA Button */}
+            <PartnerOfferButton
+              isVisible={showPartnerOffer}
+              onToggle={() => setShowPartnerOffer(!showPartnerOffer)}
+            />
+
+            {/* Partner Offer Card - Collapsible */}
+            {showPartnerOffer && (
+              <Box
+                sx={{
+                  width: "100%",
+                  maxWidth: "900px",
+                  mb: 4,
+                  animation: "fadeIn 0.3s ease-in",
+                  "@keyframes fadeIn": {
+                    from: { opacity: 0, transform: "translateY(-10px)" },
+                    to: { opacity: 1, transform: "translateY(0)" },
+                  },
+                }}
+              >
+                {productsLoading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                    <Typography>Carregando oferta...</Typography>
+                  </Box>
+                ) : products.length > 0 ? (
+                  (() => {
+                    // Find the Auto-Custodia product (or first product)
+                    const product = products[0];
+
+                    // Find R$100 prices (amount = 10000 centavos)
+                    const partnerPrices = product.prices.filter(p => p.amount === 10000 && p.active);
+
+                    // Build benefits
+                    const benefits: string[] = [];
+                    if (product.base_entitlements.platform_months) {
+                      benefits.push(`${product.base_entitlements.platform_months} meses de acesso à plataforma`);
+                    } else {
+                      benefits.push('Acesso vitalício à plataforma');
+                    }
+                    if (product.base_entitlements.support_months) {
+                      benefits.push(`${product.base_entitlements.support_months} meses de suporte`);
+                    }
+
+                    return (
+                      <PartnerOfferCard
+                        title={product.name}
+                        subtitle="Oferta especial para clientes de ex-parceiros"
+                        benefits={benefits}
+                        productId={product.id}
+                        prices={partnerPrices}
+                        productsLoading={productsLoading}
+                      />
+                    );
+                  })()
+                ) : (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                    <Typography>Oferta não disponível no momento.</Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+
             <Stack
               spacing={4}
               sx={{
@@ -532,6 +597,12 @@ export default function Home() {
                 </Box>
               ) : (
                 products.map((product) => {
+                  // Exclude R$100 special offer products from regular product list
+                  const hasSpecialOffer = product.prices.some(p => p.amount === 10000 && p.active);
+                  if (hasSpecialOffer) {
+                    return null; // Skip this product as it's shown in partner offer card
+                  }
+
                   // Find prices for this product
                   const basePrices = product.prices.filter((p) => !p.includes_mentorship);
                   const btcPrice = basePrices.find((p) => p.payment_method === 'btc');

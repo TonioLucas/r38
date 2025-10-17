@@ -13,6 +13,7 @@ export interface CheckoutData {
   name: string;
   phone?: string;
   affiliateCode?: string;
+  leadId?: string;
   manualOverride?: ManualOverrideData;
 }
 

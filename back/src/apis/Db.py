@@ -89,6 +89,8 @@ class Db(ABC):
                 "webhook_events": self.firestore.collection("webhook_events"),
                 "manual_verifications": self.firestore.collection("manual_verifications"),
                 "admin_actions": self.firestore.collection("admin_actions"),
+                "upload_requests": self.firestore.collection("upload_requests"),
+                "error_logs": self.firestore.collection("error_logs"),
             }
         return self._collections
 

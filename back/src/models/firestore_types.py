@@ -139,6 +139,20 @@ class ManualVerificationStatus(str, Enum):
     REJECTED = "rejected"
 
 
+class LeadStatus(str, Enum):
+    """Lead conversion funnel status."""
+    INITIATED = "initiated"  # User entered checkout, no payment yet
+    ABANDONED = "abandoned"  # No payment after 24h (set by Cloud Scheduler)
+    CONVERTED = "converted"  # Payment successful
+
+
+class LeadProvisioningStatus(str, Enum):
+    """Provisioning state after payment (optional field, only set after conversion)."""
+    PENDING_ADMIN_APPROVAL = "pending_admin_approval"  # Paused: manual verification OR auto-prov toggle OFF
+    COMPLETED = "completed"  # Astron Members + ActiveCampaign sync succeeded
+    FAILED = "failed"  # Astron Members or ActiveCampaign sync failed
+
+
 # Product models
 class BaseEntitlementsData(BaseModel):
     """Base entitlements included with product."""
@@ -384,3 +398,75 @@ class ManualVerificationDoc(BaseDoc):
     reviewed_at: Optional[datetime] = None
     notes: Optional[str] = None
     subscription_created: Optional[str] = None  # Subscription ID after approval
+
+
+# Lead models
+class LeadDoc(BaseDoc):
+    """Lead from landing page (ebook) or checkout.
+
+    Single model handles both lead types via 'source' field:
+    - source='ebook_landing': Ebook download leads
+    - source='checkout': Checkout abandonment and conversion tracking
+    """
+    id: str
+    # Identity
+    email: str = Field(pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$")
+    name: str = Field(min_length=3, max_length=200)
+    phone: Optional[str] = None
+
+    # Source tracking
+    source: str  # 'ebook_landing' | 'checkout'
+
+    # Conversion funnel status
+    status: LeadStatus = LeadStatus.INITIATED
+
+    # Provisioning tracking (only set after status='converted')
+    provisioning_status: Optional[LeadProvisioningStatus] = None
+    provisioning_error: Optional[str] = None
+
+    # Conversion links
+    converted_at: Optional[datetime] = None
+    converted_customer_id: Optional[str] = None
+    converted_subscription_id: Optional[str] = None
+
+    # Checkout-specific fields (only if source='checkout')
+    product_id: Optional[str] = None
+    price_id: Optional[str] = None
+
+    # Manual verification (if applicable)
+    requires_manual_verification: bool = False
+    verification_id: Optional[str] = None
+
+    # Tracking
+    ip: str
+    userAgent: str
+    utm: Dict[str, Any] = Field(default_factory=dict)  # {firstTouch: {...}, lastTouch: {...}}
+    consent: Dict[str, Any] = Field(default_factory=dict)  # {lgpdConsent: bool, consentTextVersion: str}
+
+    # Ebook-specific fields (only if source='ebook_landing')
+    recaptchaScore: Optional[float] = None
+    download: Optional[Dict[str, Any]] = None
+
+    # ActiveCampaign sync
+    activecampaign: Optional[Dict[str, Any]] = None
+
+
+class ErrorLogDoc(BaseDoc):
+    """Error log entry for monitoring page.
+
+    Captures non-webhook errors that require admin attention:
+    - Lead conversion failures
+    - Provisioning errors
+    - ActiveCampaign sync failures
+    - Other service errors
+    """
+    id: str
+    source: str  # 'lead_conversion' | 'provisioning' | 'activecampaign_sync' | etc
+    error_type: str  # Exception class name (e.g., 'ExternalServiceError')
+    error_message: str  # Human-readable error message
+    stack_trace: Optional[str] = None  # Full stack trace for debugging
+    context: Dict[str, Any] = Field(default_factory=dict)  # subscription_id, lead_id, etc
+    resolved: bool = False
+    resolved_by: Optional[str] = None  # Admin email who resolved
+    resolved_at: Optional[datetime] = None
+    notes: Optional[str] = None  # Admin notes about resolution

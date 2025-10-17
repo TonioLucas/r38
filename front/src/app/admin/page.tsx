@@ -22,10 +22,13 @@ import {
   Subscriptions as SubscriptionsIcon,
   Payment as PaymentIcon,
   Inventory as ProductIcon,
+  Monitor as MonitorIcon,
 } from "@mui/icons-material";
 import { SettingsForm } from "@/sections/admin/SettingsForm";
 import { BannersForm } from "@/sections/admin/BannersForm";
 import ManualPurchaseSettings from "@/sections/admin/ManualPurchaseSettings";
+import ActiveCampaignSettings from "@/sections/admin/ActiveCampaignSettings";
+import AutoProvisioningSettings from "@/sections/admin/AutoProvisioningSettings";
 import LeadsAnalyticsDashboard from "@/sections/admin/LeadsAnalyticsDashboard";
 import { CustomerTable } from "@/sections/admin/commercialization/CustomerTable";
 import { ManualVerificationTable } from "@/sections/admin/commercialization/ManualVerificationTable";
@@ -150,6 +153,15 @@ export default function AdminPage() {
               </Typography>
               <Button
                 variant="outlined"
+                color="primary"
+                startIcon={<MonitorIcon />}
+                onClick={() => router.push("/admin/monitor")}
+                size="small"
+              >
+                Monitor
+              </Button>
+              <Button
+                variant="outlined"
                 color="inherit"
                 startIcon={<LogoutIcon />}
                 onClick={handleLogout}
@@ -231,6 +243,12 @@ export default function AdminPage() {
             <SettingsForm />
             <Box sx={{ mt: 3 }}>
               <ManualPurchaseSettings />
+            </Box>
+            <Box sx={{ mt: 3 }}>
+              <ActiveCampaignSettings />
+            </Box>
+            <Box sx={{ mt: 3 }}>
+              <AutoProvisioningSettings />
             </Box>
           </TabPanel>
 

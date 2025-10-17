@@ -32,6 +32,23 @@ def process_invoice_settled(event: dict):
         subscription.activate()
         logger.info(f"Activated subscription {subscription_id}")
 
+        # Convert checkout lead to customer (non-critical operation)
+        should_provision = True
+        try:
+            from src.services.lead_conversion_service import LeadConversionService
+            lead_service = LeadConversionService()
+            result = lead_service.mark_lead_as_converted(subscription_id)
+
+            # Check if provisioning should be paused (manual verification)
+            if result.get('requires_manual_verification'):
+                should_provision = False
+                logger.info(f"Provisioning paused for {subscription_id} - requires manual verification")
+            elif result.get('success'):
+                logger.info(f"Lead conversion successful: {result.get('reason', 'converted')}")
+        except Exception as e:
+            logger.error(f"Lead conversion failed for {subscription_id}: {e}")
+            # Non-critical, continue processing
+
         # Extract Bitcoin payment details
         crypto_info = invoice.get('cryptoInfo', [{}])[0] if invoice.get('cryptoInfo') else {}
 
@@ -69,19 +86,84 @@ def process_invoice_settled(event: dict):
 
         logger.info(f"Created payment record {payment_id} for subscription {subscription_id}")
 
-        # Trigger provisioning workflow
-        try:
-            from src.services.customer_provisioning_service import CustomerProvisioningService
+        # Read auto-provisioning toggle ONCE and use snapshot (safe default: False)
+        from src.apis.Db import Db
+        db_instance = Db.get_instance()
+        settings_ref = db_instance.collections['settings'].document('main')
+        settings_doc = settings_ref.get()
 
-            provisioning_service = CustomerProvisioningService()
-            provisioning_result = provisioning_service.provision_customer(subscription_id)
+        auto_prov_enabled = False  # Safe default
+        if settings_doc.exists:
+            settings_data = settings_doc.to_dict()
+            auto_prov_enabled = settings_data.get('auto_provisioning_enabled', False)
 
-            logger.info(f"Provisioning triggered successfully for subscription: {subscription_id}")
+        logger.info(f"Auto-provisioning toggle: {auto_prov_enabled}, Manual verification flag: {not should_provision} for {subscription_id}")
 
-        except Exception as provisioning_error:
-            logger.error(f"Provisioning failed for {subscription_id}: {provisioning_error}", exc_info=True)
-            # Don't fail webhook processing if provisioning fails
-            # Admin can retry manually
+        # If toggle OFF, create manual_verification instead of provisioning
+        if not auto_prov_enabled:
+            logger.info(f"Auto-provisioning disabled - creating manual verification for {subscription_id}")
+
+            # CRITICAL: Check if manual_verification already exists (webhook retry idempotency)
+            existing = db_instance.collections['manual_verifications'].where(
+                'subscription_created', '==', subscription_id
+            ).limit(1).get()
+
+            if len(existing) > 0:
+                logger.warning(f"Manual verification already exists for {subscription_id}, skipping creation")
+            else:
+                # Create manual_verification entry
+                verification_data = {
+                    'email': getattr(subscription.doc, 'customer_email', ''),
+                    'upload_url': '',  # Empty for auto-generated
+                    'status': 'pending',
+                    'auto_generated': True,  # Flag to distinguish from partner offers
+                    'customer_name': getattr(subscription.doc, 'customer_name', ''),
+                    'customer_phone': getattr(subscription.doc, 'customer_phone', ''),
+                    'submitted_at': db_instance.timestamp_now(),
+                    'reviewed_by': None,
+                    'reviewed_at': None,
+                    'notes': 'Auto-generated - payment confirmed, awaiting manual approval (auto-provisioning toggle OFF)',
+                    'subscription_created': subscription_id  # Link to subscription
+                }
+
+                _, verification_ref = db_instance.collections['manual_verifications'].add(verification_data)
+                verification_id = verification_ref.id
+
+                logger.info(f"Created auto-generated manual verification {verification_id} for subscription {subscription_id}")
+
+        # Trigger provisioning workflow ONLY if toggle ON and not paused by per-lead flag
+        elif should_provision:
+            try:
+                from src.services.customer_provisioning_service import CustomerProvisioningService
+
+                provisioning_service = CustomerProvisioningService()
+                provisioning_result = provisioning_service.provision_customer(subscription_id)
+
+                logger.info(f"Provisioning triggered successfully for subscription: {subscription_id}")
+
+                # Mark lead provisioning complete
+                try:
+                    from src.services.lead_conversion_service import LeadConversionService
+                    lead_service = LeadConversionService()
+                    lead_service.mark_lead_provisioning_complete(subscription_id)
+                except Exception as lead_error:
+                    logger.error(f"Failed to update lead provisioning status: {lead_error}")
+
+            except Exception as provisioning_error:
+                logger.error(f"Provisioning failed for {subscription_id}: {provisioning_error}", exc_info=True)
+
+                # Mark lead provisioning failed
+                try:
+                    from src.services.lead_conversion_service import LeadConversionService
+                    lead_service = LeadConversionService()
+                    lead_service.mark_lead_provisioning_failed(subscription_id, str(provisioning_error))
+                except Exception as lead_error:
+                    logger.error(f"Failed to update lead provisioning failure: {lead_error}")
+
+                # Don't fail webhook processing if provisioning fails
+                # Admin can retry manually
+        else:
+            logger.info(f"Provisioning skipped for {subscription_id} - waiting for manual verification approval")
 
     except Exception as e:
         logger.error(f"Error processing InvoiceSettled: {e}", exc_info=True)

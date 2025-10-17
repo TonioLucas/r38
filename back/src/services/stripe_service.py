@@ -38,7 +38,8 @@ class StripeService:
         subscription_id: str,
         product: Product,
         price: ProductPrice,
-        affiliate_id: Optional[str] = None
+        affiliate_id: Optional[str] = None,
+        lead_id: Optional[str] = None
     ) -> str:
         """Create Stripe Checkout Session for payment.
 
@@ -47,6 +48,7 @@ class StripeService:
             product: Product document
             price: ProductPrice document
             affiliate_id: Optional affiliate ID for commission tracking
+            lead_id: Optional lead ID for checkout abandonment tracking
 
         Returns:
             Checkout session URL to redirect customer
@@ -78,6 +80,9 @@ class StripeService:
 
             if affiliate_id:
                 metadata['affiliate_id'] = affiliate_id
+
+            if lead_id:
+                metadata['lead_id'] = lead_id
 
             # Create or retrieve Stripe Customer for phone number prefilling
             stripe_customer_id = customer.doc.stripe_customer_id

@@ -2,6 +2,7 @@
 
 import os
 import base64
+import traceback
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from cryptography.fernet import Fernet
@@ -45,6 +46,35 @@ class CustomerProvisioningService:
         self.fernet = Fernet(self.encryption_key)
 
         self.db = Db.get_instance()
+
+    def _log_error_to_firestore(
+        self,
+        source: str,
+        error: Exception,
+        context: Dict[str, Any]
+    ):
+        """Log error to error_logs collection for monitoring.
+
+        Args:
+            source: Error source identifier (e.g., 'provisioning')
+            error: Exception instance
+            context: Additional context (subscription_id, customer_id, etc.)
+        """
+        try:
+            error_data = {
+                'source': source,
+                'error_type': type(error).__name__,
+                'error_message': str(error),
+                'stack_trace': traceback.format_exc(),
+                'context': context,
+                'resolved': False,
+                'createdAt': datetime.now(),
+                'lastUpdatedAt': datetime.now()
+            }
+            self.db.collections['error_logs'].add(error_data)
+            logger.info(f"Logged error to Firestore: {source} - {type(error).__name__}")
+        except Exception as log_error:
+            logger.error(f"Failed to log error to Firestore: {log_error}")
 
     def provision_customer(self, subscription_id: str) -> Dict[str, Any]:
         """Complete customer provisioning workflow.
@@ -139,6 +169,17 @@ class CustomerProvisioningService:
 
         except Exception as e:
             logger.error(f"Provisioning failed for {subscription_id}: {e}", exc_info=True)
+
+            # Log error to Firestore for monitoring
+            self._log_error_to_firestore(
+                source='provisioning',
+                error=e,
+                context={
+                    'subscription_id': subscription_id,
+                    'customer_id': subscription.doc.customer_id if subscription.doc else None,
+                    'customer_email': subscription.doc.customer_email if subscription.doc else None
+                }
+            )
 
             # Update subscription with error status
             subscription.update_doc({

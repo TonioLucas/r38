@@ -87,6 +87,24 @@ service cloud.firestore {
       allow read, update: if isAdmin();
     }
 
+    // Error logs: admin only
+    match /error_logs/{errorId} {
+      allow read: if isAdmin();
+      allow write: if false;  // Only via Cloud Functions
+    }
+
+    // Admin actions: admin only
+    match /admin_actions/{actionId} {
+      allow read: if isAdmin();
+      allow write: if false;  // Only via Cloud Functions
+    }
+
+    // Upload requests: admin only
+    match /upload_requests/{requestId} {
+      allow read: if isAdmin();
+      allow write: if false;  // Only via Cloud Functions
+    }
+
     // Default deny for everything else
     match /{document=**} {
       allow read, write: if false;

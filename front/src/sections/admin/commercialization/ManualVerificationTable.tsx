@@ -111,6 +111,7 @@ export function ManualVerificationTable() {
               <TableRow>
                 <TableCell>Email</TableCell>
                 <TableCell>Data Submissão</TableCell>
+                <TableCell>Tipo</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Revisado Por</TableCell>
                 <TableCell>Data Revisão</TableCell>
@@ -120,13 +121,13 @@ export function ManualVerificationTable() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : verifications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
+                  <TableCell colSpan={7} align="center">
                     Nenhuma verificação encontrada
                   </TableCell>
                 </TableRow>
@@ -136,11 +137,38 @@ export function ManualVerificationTable() {
                     <TableCell>{verification.email}</TableCell>
                     <TableCell>{formatDate(verification.submitted_at)}</TableCell>
                     <TableCell>
-                      <Chip
-                        label={getStatusLabel(verification.status)}
-                        color={getStatusColor(verification.status)}
-                        size="small"
-                      />
+                      {verification.auto_generated ? (
+                        <Chip
+                          label="Auto-gerado"
+                          color="default"
+                          size="small"
+                          variant="outlined"
+                        />
+                      ) : (
+                        <Chip
+                          label="Oferta Parceiro"
+                          color="primary"
+                          size="small"
+                          variant="outlined"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip
+                          label={getStatusLabel(verification.status)}
+                          color={getStatusColor(verification.status)}
+                          size="small"
+                        />
+                        {verification.provisioning_error && (
+                          <Chip
+                            label="Erro"
+                            color="error"
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                      </Stack>
                     </TableCell>
                     <TableCell>
                       {verification.reviewed_by ? (

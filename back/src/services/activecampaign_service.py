@@ -2,8 +2,10 @@
 
 import os
 import time
+import traceback
 import requests
 from typing import Dict, Any, Optional
+from datetime import datetime
 from src.util.logger import get_logger
 from src.exceptions.CustomError import ExternalServiceError
 from src.models.activecampaign_types import (
@@ -26,7 +28,29 @@ class ActiveCampaignService:
         """Initialize ActiveCampaign service with environment configuration."""
         account = os.environ.get("ACTIVECAMPAIGN_ACCOUNT")
         self.api_key = os.environ.get("ACTIVECAMPAIGN_API_KEY")
-        self.ebook_tag_name = os.environ.get("ACTIVECAMPAIGN_EBOOK_TAG", "Ebook Downloaded")
+
+        # Initialize Db for Firestore settings access
+        from src.apis.Db import Db
+        self.db = Db()
+
+        # Load tag names from Firestore with env var fallback
+        self.ebook_tag_name = self._get_setting_with_fallback(
+            'ebook_tag_name',
+            'ACTIVECAMPAIGN_EBOOK_TAG',
+            'Ebook Downloaded'
+        )
+        self.provisioning_tag_name = self._get_setting_with_fallback(
+            'provisioning_tag_name',
+            'ACTIVECAMPAIGN_PROVISIONING_TAG',
+            'Trigger_Welcome_Email'
+        )
+        self.abandoned_checkout_tag_name = self._get_setting_with_fallback(
+            'abandoned_checkout_tag_name',
+            'ACTIVECAMPAIGN_ABANDONED_CHECKOUT_TAG',
+            ''  # Optional - no default
+        )
+
+        # These remain as env vars only (don't need admin UI)
         self.ebook_list_name = os.environ.get("ACTIVECAMPAIGN_EBOOK_LIST")
         self.download_field_id = os.environ.get("ACTIVECAMPAIGN_DOWNLOAD_FIELD_ID")
 
@@ -52,6 +76,79 @@ class ActiveCampaignService:
             "Content-Type": "application/json"
         }
         self.last_request_time = 0
+
+    def _get_setting_with_fallback(
+        self,
+        firestore_key: str,
+        env_key: str,
+        default: str = ''
+    ) -> str:
+        """Get ActiveCampaign setting from Firestore, env var, or default.
+
+        Priority: Firestore settings/main → env var → default value
+
+        Args:
+            firestore_key: Key in settings/main → activecampaign section
+            env_key: Environment variable name as fallback
+            default: Default value if neither Firestore nor env var are set
+
+        Returns:
+            Setting value (string)
+        """
+        try:
+            # Try to load from Firestore settings/main document
+            settings_ref = self.db.collections['settings'].document('main')
+            settings_doc = settings_ref.get()
+
+            if settings_doc.exists:
+                settings_data = settings_doc.to_dict()
+                activecampaign = settings_data.get('activecampaign', {})
+                value = activecampaign.get(firestore_key)
+
+                if value:
+                    logger.info(f"Using {firestore_key} from Firestore: {value}")
+                    return value
+        except Exception as e:
+            logger.warning(f"Failed to load {firestore_key} from Firestore: {e}")
+
+        # Fallback to environment variable
+        value = os.environ.get(env_key)
+        if value:
+            logger.info(f"Using {firestore_key} from environment variable {env_key}: {value}")
+            return value
+
+        # Fallback to default
+        logger.info(f"Using default value for {firestore_key}: {default}")
+        return default
+
+    def _log_error_to_firestore(
+        self,
+        source: str,
+        error: Exception,
+        context: Dict[str, Any]
+    ):
+        """Log error to error_logs collection for monitoring.
+
+        Args:
+            source: Error source identifier (e.g., 'activecampaign_sync')
+            error: Exception instance
+            context: Additional context (email, contact_id, etc.)
+        """
+        try:
+            error_data = {
+                'source': source,
+                'error_type': type(error).__name__,
+                'error_message': str(error),
+                'stack_trace': traceback.format_exc(),
+                'context': context,
+                'resolved': False,
+                'createdAt': datetime.now(),
+                'lastUpdatedAt': datetime.now()
+            }
+            self.db.collections['error_logs'].add(error_data)
+            logger.info(f"Logged error to Firestore: {source} - {type(error).__name__}")
+        except Exception as log_error:
+            logger.error(f"Failed to log error to Firestore: {log_error}")
 
     def _rate_limit(self):
         """Ensure 200ms between requests (4 req/sec, conservative).
@@ -405,8 +502,8 @@ class ActiveCampaignService:
             except Exception:
                 pass  # Lead tag might not exist
 
-            # Trigger welcome email automation
-            welcome_tag_id = self.get_or_create_tag("Trigger_Welcome_Email")
+            # Trigger welcome email automation (uses configurable tag)
+            welcome_tag_id = self.get_or_create_tag(self.provisioning_tag_name)
             self.add_tag_to_contact(contact_id, welcome_tag_id)
 
             logger.info(f"Customer purchase synced for {email}")
@@ -418,6 +515,18 @@ class ActiveCampaignService:
 
         except Exception as e:
             logger.error(f"Failed to sync customer purchase: {e}", exc_info=True)
+
+            # Log error to Firestore for monitoring
+            self._log_error_to_firestore(
+                source='activecampaign_sync',
+                error=e,
+                context={
+                    'email': email,
+                    'product_name': product_name,
+                    'operation': 'sync_customer_purchase'
+                }
+            )
+
             return {
                 "success": False,
                 "error": str(e)

@@ -65,11 +65,41 @@ export interface NotificationDoc extends BaseDocument {
   actionUrl?: string;
 }
 
-// Lead document interface (for landing page leads)
+// Lead status types
+export type LeadStatus = 'initiated' | 'abandoned' | 'converted';
+export type LeadProvisioningStatus = 'pending_admin_approval' | 'completed' | 'failed';
+
+// Lead document interface (for both ebook and checkout leads)
 export interface LeadDoc extends BaseDocument {
+  // Identity
   name: string;
   email: string;
   phone?: string;
+
+  // Source tracking
+  source: 'ebook_landing' | 'checkout';
+
+  // Conversion funnel status
+  status: LeadStatus;
+
+  // Provisioning tracking (only set after status='converted')
+  provisioning_status?: LeadProvisioningStatus;
+  provisioning_error?: string;
+
+  // Conversion links
+  converted_at?: Timestamp;
+  converted_customer_id?: string;
+  converted_subscription_id?: string;
+
+  // Checkout-specific fields (only if source='checkout')
+  product_id?: string;
+  price_id?: string;
+
+  // Manual verification (if applicable)
+  requires_manual_verification?: boolean;
+  verification_id?: string;
+
+  // Tracking
   ip: string;
   userAgent: string;
   utm: {
@@ -100,12 +130,16 @@ export interface LeadDoc extends BaseDocument {
     lgpdConsent: boolean;
     consentTextVersion: string;
   };
-  recaptchaScore: number;
-  download: {
+
+  // Ebook-specific fields (only if source='ebook_landing')
+  recaptchaScore?: number;
+  download?: {
     firstDownloadedAt?: Timestamp;
     lastDownloadedAt?: Timestamp;
     count24h: number;
   };
+
+  // ActiveCampaign sync
   activecampaign?: {
     contactId: string;
     listId: string;
@@ -123,6 +157,15 @@ export interface ManualPurchaseSettings {
   override_price_reais: number;
   allowed_admin_emails: string[];
   created_at: Timestamp;
+  updated_at: Timestamp;
+  updated_by: string;
+}
+
+// ActiveCampaign automation settings
+export interface ActiveCampaignSettings {
+  ebook_tag_name: string;
+  provisioning_tag_name: string;
+  abandoned_checkout_tag_name: string;
   updated_at: Timestamp;
   updated_by: string;
 }
@@ -151,6 +194,8 @@ export interface SettingsDoc {
     sizeBytes: number;
   };
   manual_purchase?: ManualPurchaseSettings;
+  activecampaign?: ActiveCampaignSettings;
+  auto_provisioning_enabled?: boolean;
   updatedAt: Timestamp;
 }
 
@@ -387,6 +432,9 @@ export interface ManualVerificationDoc extends BaseDocument {
   reviewed_at: Date | null;
   notes: string | null;
   subscription_created: string | null;
+  auto_generated?: boolean;
+  provisioning_error?: string;
+  provisioning_failed_at?: Date;
 }
 
 // Collection names as constants

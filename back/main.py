@@ -43,6 +43,7 @@ from src.brokers.callable.get_item import get_item_callable
 from src.brokers.https.health_check import health_check
 from src.brokers.https.webhook_handler import webhook_handler
 from src.brokers.https.create_lead import create_lead
+from src.brokers.https.create_checkout_lead import create_checkout_lead
 from src.brokers.https.get_download_link import get_download_link
 
 # Import payment functions
@@ -50,6 +51,7 @@ from src.brokers.https.create_checkout_session import create_checkout_session
 from src.brokers.https.create_btcpay_invoice import create_btcpay_invoice
 from src.brokers.https.process_payment_webhook import process_payment_webhook
 from src.brokers.https.get_subscription_status import get_subscription_status
+from src.brokers.https.get_upload_url import get_upload_url
 
 # Import provisioning functions
 from src.brokers.https.provision_customer import provision_customer
@@ -61,11 +63,18 @@ from src.brokers.https.admin.regenerate_password import regenerate_customer_pass
 from src.brokers.https.admin.regenerate_magic_link import regenerate_magic_login_url
 from src.brokers.https.admin.extend_entitlement import extend_subscription_entitlement
 from src.brokers.https.admin.update_manual_purchase_settings import update_manual_purchase_settings
+from src.brokers.https.admin.fetch_activecampaign_tags import fetch_activecampaign_tags
+from src.brokers.https.admin.update_activecampaign_settings import update_activecampaign_settings
+from src.brokers.https.admin.mark_error_resolved import mark_error_resolved
+from src.brokers.https.admin.bulk_approve_verifications import bulk_approve_auto_generated_verifications
 
 # Import triggered functions
 from src.brokers.triggered.on_item_created import on_item_created
 from src.brokers.triggered.on_item_updated import on_item_updated
 from src.brokers.triggered.on_item_deleted import on_item_deleted
+
+# Import scheduled functions
+from src.brokers.scheduled.mark_abandoned_leads import mark_abandoned_leads
 
 # Export all functions for Firebase deployment
 __all__ = [
@@ -78,6 +87,7 @@ __all__ = [
     'health_check',
     'webhook_handler',
     'create_lead',
+    'create_checkout_lead',
     'get_download_link',
 
     # Payment functions
@@ -85,6 +95,7 @@ __all__ = [
     'create_btcpay_invoice',
     'process_payment_webhook',
     'get_subscription_status',
+    'get_upload_url',
 
     # Provisioning functions
     'provision_customer',
@@ -95,11 +106,19 @@ __all__ = [
     'regenerate_customer_password',
     'regenerate_magic_login_url',
     'extend_subscription_entitlement',
+    'update_manual_purchase_settings',
+    'fetch_activecampaign_tags',
+    'update_activecampaign_settings',
+    'mark_error_resolved',
+    'bulk_approve_auto_generated_verifications',
 
     # Triggered functions
     'on_item_created',
     'on_item_updated',
     'on_item_deleted',
+
+    # Scheduled functions
+    'mark_abandoned_leads',
 ]
 
 logger.info("Firebase Functions initialized successfully")

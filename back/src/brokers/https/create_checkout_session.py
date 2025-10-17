@@ -255,16 +255,53 @@ def create_checkout_session(req: Request):
             subscription = Subscription(id=subscription_id)
 
             logger.info(f"Created subscription {subscription_id} for customer {customer_id}")
+
+            # Handle partner offer verification
+            partner_offer = data.get('partnerOffer')
+            if partner_offer:
+                verification_data = {
+                    'email': email,
+                    'upload_url': partner_offer.get('proofUrl'),
+                    'status': 'pending',
+                    'partner_source': partner_offer.get('partner'),
+                    'customer_name': name,
+                    'customer_phone': phone,
+                    'submitted_at': db.timestamp_now(),
+                    'reviewed_by': None,
+                    'reviewed_at': None,
+                    'notes': None,
+                    'subscription_created': subscription_id,
+                    'created_at': db.timestamp_now(),
+                    'updated_at': db.timestamp_now()
+                }
+
+                _, verification_ref = db.collections['manual_verifications'].add(verification_data)
+                verification_id = verification_ref.id
+
+                logger.info(f"Created manual verification {verification_id} for partner offer: {partner_offer.get('partner')}")
+
+                # Update subscription with verification reference
+                subscription_ref.update({
+                    'manual_verification': {
+                        'verification_id': verification_id,
+                        'partner_source': partner_offer.get('partner'),
+                        'proof_url': partner_offer.get('proofUrl'),
+                        'submitted_at': db.timestamp_now()
+                    }
+                })
         else:
             subscription_id = subscription.doc.id
 
         # Create Stripe checkout session
         stripe_service = StripeService()
+        # Extract lead_id if provided (for checkout abandonment tracking)
+        lead_id = data.get('leadId') if 'priceId' in data else data.get('lead_id')
         checkout_url = stripe_service.create_checkout_session(
             subscription_id=subscription_id,
             product=product,
             price=price,
-            affiliate_id=affiliate_code if 'priceId' in data else data.get('affiliate_id')
+            affiliate_id=affiliate_code if 'priceId' in data else data.get('affiliate_id'),
+            lead_id=lead_id
         )
 
         logger.info(f"Created checkout session for subscription {subscription_id}")
